@@ -1,153 +1,339 @@
 # Minimal CLI Agent
 
-A minimal agent that executes tasks using command-line tools, can break down tasks, loops until goal is fulfilled, and can interact with the user.
+A minimal (~380 lines) agent that executes tasks using command-line tools, can break down tasks, loops until goal is fulfilled, and can interact with the user.
 
 **Runs in a Docker sandbox** for security and isolation.
 
-## Quick Start (Docker - Recommended)
+## ⭐ Key Features
 
-1. **Setup:**
-   ```bash
-   # Copy .env.example to .env and add your API key
-   cp .env.example .env
-   nano .env  # Add your OPENAI_API_KEY or ANTHROPIC_API_KEY
-   
-   # Make run script executable
-   chmod +x run-agent.sh
-   ```
+- ✅ **Minimal Core**: ~380 lines of clean, readable Python code
+- ✅ **Extensible**: 50+ tools in templates, 4 complete examples
+- ✅ **Secure**: Sandboxed Docker execution, input validation, path traversal protection
+- ✅ **Robust**: Retry logic with exponential backoff, timeout handling, comprehensive error handling
+- ✅ **Configurable**: Environment variables and config.yaml support
+- ✅ **Observable**: Structured logging with configurable levels
+- ✅ **LLM Agnostic**: OpenAI, Anthropic, or bring your own
+- ✅ **MIT Licensed**: Free to use and modify
 
-2. **Run:**
-   ```bash
-   # Run in current directory
-   ./run-agent.sh "Find all Python files"
-   
-   # Run in specific directory
-   ./run-agent.sh "Count lines of code" ./my-project
-   ```
+## 🚀 Quick Start
 
-The agent runs in an isolated Docker container with your directory mounted as `/workspace`.
-
-## Manual Docker Usage
+### Using Docker (Recommended)
 
 ```bash
-# Build image
+# 1. Clone and setup
+git clone <repo-url>
+cd tiny-agent
+
+# 2. Setup environment
+cp env.example .env
+nano .env  # Add your OPENAI_API_KEY or ANTHROPIC_API_KEY
+
+# 3. Build and run
+chmod +x run-agent.sh
 docker build -t cli-agent:latest .
-
-# Run with current directory mounted
-docker run --rm -it \
-  -v $(pwd):/workspace \
-  -e OPENAI_API_KEY="your-key" \
-  cli-agent:latest \
-  "Your task here"
-
-# Or use docker-compose
-docker-compose run agent "Your task here"
+./run-agent.sh "Find all Python files"
 ```
 
-## Local Setup (Without Docker)
+### Using Make
 
-1. **Create agent directory:**
-   ```bash
-   mkdir -p ~/.agent
-   cp commands.json ~/.agent/
-   ```
-
-2. **Configure LLM:**
-   Edit `agent.py` and replace the `call_llm()` function with your LLM of choice:
-   - OpenAI: `openai.chat.completions.create()`
-   - Anthropic: `anthropic.messages.create()`
-   - Local: ollama, llama.cpp, etc.
-
-3. **Install dependencies:**
-   ```bash
-   pip install openai  # or anthropic, or whatever LLM client you use
-   ```
-
-4. **Run:**
-   ```bash
-   chmod +x agent.py
-   ./agent.py "Find all Python files in the current directory"
-   ```
-
-## Structure
-
-```
-.
-├── agent.py              # Main agent script
-├── commands.json         # CLI tool definitions
-├── Dockerfile            # Docker sandbox
-├── docker-compose.yml    # Docker compose config
-├── run-agent.sh          # Easy run script
-├── .env.example          # API key template
-├── .dockerignore         # Docker build exclusions
-└── workspace/            # Your mounted directory (in container)
+```bash
+make setup  # Initial setup
+make build  # Build Docker image
+make run TASK='Find all Python files'
 ```
 
-In container:
+## 📁 Project Structure
+
 ```
-/home/agent/.agent/commands.json   # Available CLI tools
-/workspace/                         # Your mounted directory
+tiny-agent/
+├── agent.py                 # Core agent (~380 lines)
+├── commands.json            # Default tool definitions
+├── config.yaml.example      # Configuration template
+├── env.example              # Environment variables template
+│
+├── templates/               # ⭐ 50+ reusable tool templates
+│   ├── basic/              # File operations, text processing, system info
+│   ├── development/        # Git, Python, Docker tools
+│   ├── data/               # JSON, CSV, API tools
+│   ├── devops/             # Logging, monitoring tools
+│   └── README.md           # Template documentation
+│
+├── examples/                # ⭐ 4 complete use cases
+│   ├── analyze-codebase/   # Code analysis
+│   ├── log-analysis/       # Log file analysis
+│   ├── data-processing/    # CSV/JSON processing
+│   ├── devops-tasks/       # DevOps automation
+│   └── README.md           # Examples documentation
+│
+├── Dockerfile               # Docker sandbox
+├── docker-compose.yml       # Docker Compose config
+├── run-agent.sh             # Convenient wrapper script
+├── Makefile                 # Make commands
+└── README.md                # This file
 ```
 
-## Docker Security Features
+## 🎯 Usage Examples
 
-- ✅ Runs as non-root user (UID 1000)
-- ✅ Isolated filesystem (only workspace is accessible)
-- ✅ No persistent state between runs
-- ✅ Limited to basic CLI tools
-- ✅ Can't modify agent code from within container
+### Basic Tasks
 
-## Adding Commands
+```bash
+# File operations
+./run-agent.sh "Find all Python files"
+./run-agent.sh "Count lines of code in all .py files"
+./run-agent.sh "Search for TODO comments"
 
-Edit `~/.agent/commands.json`:
+# Data analysis
+./run-agent.sh "Summarize the sales.csv data"
+./run-agent.sh "How many errors are in the logs?"
+
+# Code analysis
+./run-agent.sh "Analyze this codebase and give me a summary"
+```
+
+### Using Templates
+
+Templates provide reusable tool sets for specific use cases:
+
+```bash
+# Use a specific template
+cp templates/development/git-tools.json commands.json
+docker build -t cli-agent:latest .
+./run-agent.sh "Show me the recent commit history"
+
+# Combine multiple templates
+jq -s 'add' \
+  templates/basic/file-operations.json \
+  templates/development/python-tools.json \
+  > commands.json
+```
+
+See [templates/README.md](templates/README.md) for all available templates.
+
+### Using Examples
+
+Examples provide complete, ready-to-use configurations:
+
+```bash
+# Use the code analysis example
+cp examples/analyze-codebase/commands.json commands.json
+docker build -t cli-agent:latest .
+./run-agent.sh "Analyze this Python project"
+
+# Use the log analysis example
+cp examples/log-analysis/commands.json commands.json
+docker build -t cli-agent:latest .
+./run-agent.sh "Find all errors in the logs" ./logs
+```
+
+See [examples/README.md](examples/README.md) for all available examples.
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create a `.env` file from the template:
+
+```bash
+cp env.example .env
+```
+
+Required variables:
+```bash
+# Choose your LLM provider
+OPENAI_API_KEY=sk-your-key        # For OpenAI
+ANTHROPIC_API_KEY=sk-ant-your-key # For Anthropic
+```
+
+Optional configuration (override config.yaml):
+```bash
+LLM_PROVIDER=openai     # openai or anthropic
+LLM_MODEL=gpt-4         # Model to use
+MAX_ITERATIONS=10       # Max agent loop iterations
+COMMAND_TIMEOUT=30      # Timeout for commands (seconds)
+MAX_RETRIES=3           # LLM call retries
+MAX_OUTPUT_SIZE=5000    # Output truncation size
+LOG_LEVEL=INFO          # DEBUG, INFO, WARNING, ERROR
+```
+
+### Configuration File
+
+Copy and customize the config file:
+
+```bash
+cp config.yaml.example config.yaml
+```
+
+See [config.yaml.example](config.yaml.example) for all options.
+
+## 🔧 Advanced Usage
+
+### Custom Tool Development
+
+Create your own tools in `commands.json`:
 
 ```json
 {
-  "name": "your_command",
-  "description": "What it does",
+  "name": "your_tool",
+  "description": "What your tool does",
   "command": "bash_command {arg1} {arg2}",
   "parameters": {
     "type": "object",
     "properties": {
-      "arg1": {"type": "string", "description": "..."},
-      "arg2": {"type": "string", "description": "..."}
+      "arg1": {
+        "type": "string",
+        "description": "Description for arg1"
+      }
     },
     "required": ["arg1"]
   }
 }
 ```
 
-## Features
+### Running Without Docker
 
-- ✅ Loops until task is complete
-- ✅ Breaks down complex tasks
-- ✅ Uses CLI commands as tools
-- ✅ Interactive: can ask user questions
-- ✅ User commands: `/quit`, `/done`
-- ✅ ~100 lines of code
+```bash
+# 1. Setup
+mkdir -p ~/.agent
+cp commands.json ~/.agent/
+pip install openai  # or anthropic
 
-## Example Session
+# 2. Configure
+export OPENAI_API_KEY="your-key"
 
+# 3. Run
+./agent.py "Your task here"
 ```
-$ ./agent.py "Find large files over 1MB"
 
-🎯 Goal: Find large files over 1MB
+### Different LLM Providers
 
---- Iteration 1 ---
-🔧 Executing: find_files({'path': '.', 'pattern': '*'})
-📋 Result: ./file1.txt./file2.log...
+The agent supports multiple LLM providers:
 
---- Iteration 2 ---
-🤖 Agent: I found 15 files. Should I filter by size now?
-Your response: yes
-
---- Iteration 3 ---
-🔧 Executing: get_disk_usage({'path': './file1.txt'})
-...
-
-✅ Final result:
-Found 3 files over 1MB:
-- file1.txt (2.3MB)
-- file2.log (1.5MB)
-- archive.zip (10MB)
+**OpenAI (default):**
+```bash
+export LLM_PROVIDER=openai
+export LLM_MODEL=gpt-4
+export OPENAI_API_KEY=your-key
 ```
+
+**Anthropic:**
+```bash
+export LLM_PROVIDER=anthropic
+export LLM_MODEL=claude-3-opus-20240229
+export ANTHROPIC_API_KEY=your-key
+```
+
+**Custom providers:** Edit the `call_llm()` function in `agent.py`.
+
+## 🔒 Security Features
+
+### Docker Sandbox
+
+- Runs as non-root user (UID 1000)
+- Isolated filesystem (only /workspace accessible)
+- No persistent state between runs
+- Limited to safe CLI tools
+- Can't modify agent code from within container
+
+### Agent Security
+
+- Input validation against parameter schemas
+- Path traversal protection
+- Shell injection prevention with `shlex.quote`
+- Command timeout enforcement
+- Output size limits
+- Explicit `shell=False` in subprocess calls
+
+## 📊 Improvements Over Original
+
+| Feature | Original | Enhanced |
+|---------|----------|----------|
+| Code Size | ~190 lines | ~380 lines (with features) |
+| Error Handling | Basic | Comprehensive with retries |
+| Validation | None | Full parameter validation |
+| Security | Basic | Path traversal protection, input sanitization |
+| Configuration | Hardcoded | Environment + config.yaml |
+| Logging | print() only | Structured logging with levels |
+| Templates | 5 tools | 50+ tools in templates |
+| Examples | None | 4 complete examples |
+| Documentation | Basic | Complete with guides |
+| License | None | MIT License |
+
+## 🛠️ Development
+
+### Project Commands
+
+```bash
+make help     # Show all commands
+make setup    # Initial project setup
+make build    # Build Docker image
+make run      # Run agent (set TASK)
+make shell    # Open shell in container
+make clean    # Clean up Docker image
+make test     # Run test tasks
+```
+
+### Logging
+
+Set log level for debugging:
+
+```bash
+export LOG_LEVEL=DEBUG
+./run-agent.sh "Your task"
+```
+
+Log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`
+
+## 📚 Documentation
+
+- [Templates Guide](templates/README.md) - 50+ reusable tool templates
+- [Examples Guide](examples/README.md) - 4 complete use cases
+- [QUICKSTART.md](QUICKSTART.md) - Quick start guide
+- [LICENSE](LICENSE) - MIT License
+
+## 🤝 Contributing
+
+Contributions welcome! Areas for improvement:
+
+1. Additional templates for specific domains
+2. More complete examples
+3. Support for additional LLM providers
+4. Test coverage
+5. Documentation improvements
+
+## 🐛 Troubleshooting
+
+**"API key error"**
+- Check `.env` file has the correct key
+- Ensure key matches your LLM provider
+
+**"Command not found"**
+- Add the tool to `commands.json`
+- Or use a template from `templates/`
+
+**"Docker permission denied"**
+- Run `chmod +x run-agent.sh`
+- Check Docker is installed and running
+
+**"Validation error: Invalid path"**
+- Paths must be within `/workspace` in Docker
+- Or use relative paths starting with `.`
+
+**Agent loops forever**
+- Increase `MAX_ITERATIONS` if needed
+- Check if task is clearly defined
+- Use `/quit` to stop manually
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+Built with:
+- OpenAI API / Anthropic API for LLM capabilities
+- Docker for sandboxed execution
+- Python standard library for core functionality
+
+---
+
+**Keep the core minimal, extend with templates and examples.** 🎯

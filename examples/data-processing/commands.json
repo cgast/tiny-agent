@@ -1,0 +1,168 @@
+[
+  {
+    "name": "find_csv_files",
+    "description": "Find all CSV files",
+    "command": "find {path} -name '*.csv' -type f",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "find_json_files",
+    "description": "Find all JSON files",
+    "command": "find {path} -name '*.json' -type f",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "csv_head",
+    "description": "Show first N rows of CSV",
+    "command": "head -n {lines} {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "CSV file path"
+        },
+        "lines": {
+          "type": "string",
+          "description": "Number of rows"
+        }
+      },
+      "required": ["file", "lines"]
+    }
+  },
+  {
+    "name": "csv_count_rows",
+    "description": "Count total rows in CSV",
+    "command": "wc -l {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "CSV file path"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "csv_extract_column",
+    "description": "Extract specific column from CSV",
+    "command": "cut -d',' -f{column} {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "CSV file"
+        },
+        "column": {
+          "type": "string",
+          "description": "Column number (1-indexed)"
+        }
+      },
+      "required": ["file", "column"]
+    }
+  },
+  {
+    "name": "json_read",
+    "description": "Read and format JSON file",
+    "command": "cat {file} | jq .",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "JSON file path"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "json_query",
+    "description": "Query JSON with jq",
+    "command": "cat {file} | jq '{query}'",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "JSON file"
+        },
+        "query": {
+          "type": "string",
+          "description": "jq query (e.g., '.items[]', '.name')"
+        }
+      },
+      "required": ["file", "query"]
+    }
+  },
+  {
+    "name": "json_keys",
+    "description": "List all keys in JSON",
+    "command": "cat {file} | jq 'keys'",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "JSON file"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "http_get_json",
+    "description": "Fetch JSON from API",
+    "command": "curl -s {url} | jq .",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "API URL"
+        }
+      },
+      "required": ["url"]
+    }
+  },
+  {
+    "name": "sort_csv_column",
+    "description": "Sort CSV by column",
+    "command": "sort -t',' -k{column} {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "CSV file"
+        },
+        "column": {
+          "type": "string",
+          "description": "Column number to sort by"
+        }
+      },
+      "required": ["file", "column"]
+    }
+  }
+]

@@ -1,0 +1,127 @@
+[
+  {
+    "name": "find_files",
+    "description": "Find files by name pattern",
+    "command": "find {path} -name {pattern}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search in"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "File pattern (e.g., '*.py', '*.txt')"
+        }
+      },
+      "required": ["path", "pattern"]
+    }
+  },
+  {
+    "name": "search_content",
+    "description": "Search for text in files using grep",
+    "command": "grep -r {text} {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Text to search for"
+        },
+        "path": {
+          "type": "string",
+          "description": "Directory to search in"
+        }
+      },
+      "required": ["text", "path"]
+    }
+  },
+  {
+    "name": "search_case_insensitive",
+    "description": "Search for text in files (case-insensitive)",
+    "command": "grep -ri {text} {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Text to search for"
+        },
+        "path": {
+          "type": "string",
+          "description": "Directory to search in"
+        }
+      },
+      "required": ["text", "path"]
+    }
+  },
+  {
+    "name": "count_lines",
+    "description": "Count lines in a file",
+    "command": "wc -l {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "File to count lines in"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "word_count",
+    "description": "Count words in a file",
+    "command": "wc -w {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "File to count words in"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "tail_file",
+    "description": "Show last N lines of a file",
+    "command": "tail -n {lines} {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "lines": {
+          "type": "string",
+          "description": "Number of lines to show"
+        },
+        "file": {
+          "type": "string",
+          "description": "File to read from"
+        }
+      },
+      "required": ["lines", "file"]
+    }
+  },
+  {
+    "name": "head_file",
+    "description": "Show first N lines of a file",
+    "command": "head -n {lines} {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "lines": {
+          "type": "string",
+          "description": "Number of lines to show"
+        },
+        "file": {
+          "type": "string",
+          "description": "File to read from"
+        }
+      },
+      "required": ["lines", "file"]
+    }
+  }
+]

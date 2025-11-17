@@ -1,0 +1,150 @@
+[
+  {
+    "name": "find_dockerfiles",
+    "description": "Find all Dockerfiles",
+    "command": "find {path} -name 'Dockerfile*' -o -name '*.dockerfile'",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "find_compose_files",
+    "description": "Find docker-compose files",
+    "command": "find {path} -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml'",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "read_file",
+    "description": "Read file contents",
+    "command": "cat {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "File path"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "find_ci_configs",
+    "description": "Find CI/CD configuration files",
+    "command": "find {path} -name '.gitlab-ci.yml' -o -name '.github' -type d -o -name 'Jenkinsfile' -o -name '.circleci' -type d",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "check_disk_usage",
+    "description": "Check disk space",
+    "command": "df -h",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_directory_size",
+    "description": "Get size of directory",
+    "command": "du -sh {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "find_large_files",
+    "description": "Find files larger than size",
+    "command": "find {path} -type f -size +{size}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        },
+        "size": {
+          "type": "string",
+          "description": "Size threshold (e.g., '10M', '1G')"
+        }
+      },
+      "required": ["path", "size"]
+    }
+  },
+  {
+    "name": "check_env_file",
+    "description": "Check if .env file exists and show structure",
+    "command": "if [ -f {path}/.env ]; then cat {path}/.env | grep -v '^#' | grep -v '^$' | sed 's/=.*/=****/'; else echo '.env not found'; fi",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "list_dependencies",
+    "description": "Find dependency files (package.json, requirements.txt, etc)",
+    "command": "find {path} -name 'package.json' -o -name 'requirements.txt' -o -name 'Pipfile' -o -name 'go.mod' -o -name 'Cargo.toml'",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "check_git_status",
+    "description": "Check git repository status",
+    "command": "git -C {path} status --short",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Repository path"
+        }
+      },
+      "required": ["path"]
+    }
+  }
+]

@@ -1,0 +1,81 @@
+[
+  {
+    "name": "tail_log",
+    "description": "Follow log file in real-time",
+    "command": "tail -n {lines} {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file path"
+        },
+        "lines": {
+          "type": "string",
+          "description": "Number of lines to show"
+        }
+      },
+      "required": ["file", "lines"]
+    }
+  },
+  {
+    "name": "grep_log_errors",
+    "description": "Find error messages in log file",
+    "command": "grep -i 'error\\|exception\\|failed' {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file to search"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "grep_log_warnings",
+    "description": "Find warning messages in log file",
+    "command": "grep -i 'warn\\|warning' {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file to search"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "count_log_errors",
+    "description": "Count error occurrences in log file",
+    "command": "grep -ic 'error\\|exception\\|failed' {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file to analyze"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "find_log_files",
+    "description": "Find all log files in directory",
+    "command": "find {path} -name '*.log' -type f",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  }
+]

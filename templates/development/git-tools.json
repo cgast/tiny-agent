@@ -1,0 +1,89 @@
+[
+  {
+    "name": "git_status",
+    "description": "Show git repository status",
+    "command": "git -C {repo_path} status --short",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "repo_path": {
+          "type": "string",
+          "description": "Path to git repository"
+        }
+      },
+      "required": ["repo_path"]
+    }
+  },
+  {
+    "name": "git_log",
+    "description": "Show recent commits",
+    "command": "git -C {repo_path} log --oneline -n {count}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "repo_path": {
+          "type": "string",
+          "description": "Path to git repository"
+        },
+        "count": {
+          "type": "string",
+          "description": "Number of commits to show"
+        }
+      },
+      "required": ["repo_path", "count"]
+    }
+  },
+  {
+    "name": "git_diff",
+    "description": "Show git diff of changes",
+    "command": "git -C {repo_path} diff",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "repo_path": {
+          "type": "string",
+          "description": "Path to git repository"
+        }
+      },
+      "required": ["repo_path"]
+    }
+  },
+  {
+    "name": "git_branch",
+    "description": "List git branches",
+    "command": "git -C {repo_path} branch -a",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "repo_path": {
+          "type": "string",
+          "description": "Path to git repository"
+        }
+      },
+      "required": ["repo_path"]
+    }
+  },
+  {
+    "name": "git_show_file",
+    "description": "Show file content from a specific commit",
+    "command": "git -C {repo_path} show {commit}:{file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "repo_path": {
+          "type": "string",
+          "description": "Path to git repository"
+        },
+        "commit": {
+          "type": "string",
+          "description": "Commit hash or reference (e.g., 'HEAD', 'main')"
+        },
+        "file": {
+          "type": "string",
+          "description": "File path relative to repo root"
+        }
+      },
+      "required": ["repo_path", "commit", "file"]
+    }
+  }
+]
