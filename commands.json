@@ -1,0 +1,85 @@
+[
+  {
+    "name": "list_files",
+    "description": "List files in a directory",
+    "command": "ls -la {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path to list"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "read_file",
+    "description": "Read contents of a file",
+    "command": "cat {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "File path to read"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "find_files",
+    "description": "Find files by pattern",
+    "command": "find {path} -name {pattern}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search in"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "File pattern (e.g., '*.py')"
+        }
+      },
+      "required": ["path", "pattern"]
+    }
+  },
+  {
+    "name": "search_content",
+    "description": "Search for text in files using grep",
+    "command": "grep -r {text} {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Text to search for"
+        },
+        "path": {
+          "type": "string",
+          "description": "Directory to search in"
+        }
+      },
+      "required": ["text", "path"]
+    }
+  },
+  {
+    "name": "get_disk_usage",
+    "description": "Get disk usage of a directory",
+    "command": "du -sh {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path"
+        }
+      },
+      "required": ["path"]
+    }
+  }
+]

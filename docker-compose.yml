@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  agent:
+    build: .
+    image: cli-agent:latest
+    container_name: cli-agent
+    volumes:
+      # Mount your local directory to /workspace in container
+      - ./workspace:/workspace
+      # Optionally: mount custom commands.json
+      # - ./custom-commands.json:/home/agent/.agent/commands.json:ro
+    environment:
+      # Set your API keys here or use .env file
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    # Example: run with a task
+    # command: ["Find all Python files and count lines of code"]
+    stdin_open: true
+    tty: true
