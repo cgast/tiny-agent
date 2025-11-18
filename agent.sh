@@ -13,6 +13,7 @@ NC='\033[0m'
 # Defaults
 MODE="local"
 WORKSPACE="."
+VERBOSITY="normal"  # quiet, normal, verbose, debug
 
 # Usage
 usage() {
@@ -21,6 +22,11 @@ usage() {
     echo "Options:"
     echo "  -m, --mode <local|sandbox>   Execution mode (default: local)"
     echo "  -w, --workspace <path>       Workspace directory (default: .)"
+    echo "  -v, --verbosity <level>      Output verbosity (default: normal)"
+    echo "                               quiet   - Only final results"
+    echo "                               normal  - Key actions and results"
+    echo "                               verbose - Include agent thoughts"
+    echo "                               debug   - All logs and details"
     echo "  -h, --help                   Show this help"
     echo ""
     echo "Examples:"
@@ -41,6 +47,10 @@ while [[ $# -gt 0 ]]; do
             WORKSPACE="$2"
             shift 2
             ;;
+        -v|--verbosity)
+            VERBOSITY="$2"
+            shift 2
+            ;;
         -h|--help)
             usage
             ;;
@@ -53,29 +63,35 @@ done
 
 # Validate task
 if [ -z "$TASK" ]; then
-    echo -e "${RED}Error: No task provided${NC}"
+    echo -e "${RED}Error: No task provided${NC}" >&2
     usage
 fi
 
 # Validate mode
 if [ "$MODE" != "local" ] && [ "$MODE" != "sandbox" ]; then
-    echo -e "${RED}Error: Invalid mode '$MODE'. Use 'local' or 'sandbox'${NC}"
+    echo -e "${RED}Error: Invalid mode '$MODE'. Use 'local' or 'sandbox'${NC}" >&2
+    exit 1
+fi
+
+# Validate verbosity
+if [ "$VERBOSITY" != "quiet" ] && [ "$VERBOSITY" != "normal" ] && [ "$VERBOSITY" != "verbose" ] && [ "$VERBOSITY" != "debug" ]; then
+    echo -e "${RED}Error: Invalid verbosity '$VERBOSITY'. Use 'quiet', 'normal', 'verbose', or 'debug'${NC}" >&2
     exit 1
 fi
 
 # Run local
 if [ "$MODE" = "local" ]; then
-    echo -e "${GREEN}🚀 Running locally...${NC}"
+    echo -e "${GREEN}🚀 Running locally...${NC}" >&2
 
     # Check venv
     if [ ! -d .venv ]; then
-        echo -e "${YELLOW}⚠️  No .venv found. Run ./setup.sh first${NC}"
+        echo -e "${YELLOW}⚠️  No .venv found. Run ./setup.sh first${NC}" >&2
         exit 1
     fi
 
     # Check .env
     if [ ! -f .env ]; then
-        echo -e "${RED}Error: .env not found. Run ./setup.sh${NC}"
+        echo -e "${RED}Error: .env not found. Run ./setup.sh${NC}" >&2
         exit 1
     fi
 
@@ -85,23 +101,23 @@ if [ "$MODE" = "local" ]; then
     set +a
     source .venv/bin/activate
 
-    echo -e "${BLUE}🎯 Task: $TASK${NC}"
-    echo ""
-    python3 agent.py "$TASK"
+    echo -e "${BLUE}🎯 Task: $TASK${NC}" >&2
+    echo "" >&2
+    AGENT_VERBOSITY="$VERBOSITY" python3 agent.py "$TASK"
 
 # Run in Docker sandbox
 elif [ "$MODE" = "sandbox" ]; then
-    echo -e "${GREEN}🚀 Running in Docker sandbox...${NC}"
+    echo -e "${GREEN}🚀 Running in Docker sandbox...${NC}" >&2
 
     # Check Docker
     if ! command -v docker &> /dev/null; then
-        echo -e "${RED}Error: Docker not installed${NC}"
+        echo -e "${RED}Error: Docker not installed${NC}" >&2
         exit 1
     fi
 
     # Validate workspace
     if [ ! -d "$WORKSPACE" ]; then
-        echo -e "${RED}Error: Workspace '$WORKSPACE' not found${NC}"
+        echo -e "${RED}Error: Workspace '$WORKSPACE' not found${NC}" >&2
         exit 1
     fi
 
@@ -109,8 +125,8 @@ elif [ "$MODE" = "sandbox" ]; then
 
     # Build if needed
     if [[ "$(docker images -q cli-agent:latest 2> /dev/null)" == "" ]]; then
-        echo -e "${GREEN}📦 Building Docker image...${NC}"
-        docker build -t cli-agent:latest .
+        echo -e "${GREEN}📦 Building Docker image...${NC}" >&2
+        docker build -t cli-agent:latest . >&2
     fi
 
     # Load .env if exists
@@ -120,9 +136,9 @@ elif [ "$MODE" = "sandbox" ]; then
         set +a
     fi
 
-    echo -e "${BLUE}📁 Workspace: $WORKSPACE_ABS${NC}"
-    echo -e "${BLUE}🎯 Task: $TASK${NC}"
-    echo ""
+    echo -e "${BLUE}📁 Workspace: $WORKSPACE_ABS${NC}" >&2
+    echo -e "${BLUE}🎯 Task: $TASK${NC}" >&2
+    echo "" >&2
 
     # Run
     docker run --rm -it \
@@ -132,6 +148,7 @@ elif [ "$MODE" = "sandbox" ]; then
         -e LLM_PROVIDER="${LLM_PROVIDER}" \
         -e LLM_MODEL="${LLM_MODEL}" \
         -e LOG_LEVEL="${LOG_LEVEL}" \
+        -e AGENT_VERBOSITY="${VERBOSITY}" \
         cli-agent:latest \
         "$TASK"
 fi

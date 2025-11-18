@@ -81,5 +81,20 @@
       },
       "required": ["path"]
     }
+  },
+  {
+    "name": "http_get",
+    "description": "Make HTTP GET request",
+    "command": "curl -s {url}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL to request"
+        }
+      },
+      "required": ["url"]
+    }
   }
 ]

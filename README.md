@@ -79,6 +79,34 @@ tiny-agent/
 ./agent.sh -m sandbox "Analyze this codebase and give me a summary"
 ```
 
+### Unix-Style I/O (Pipes and Redirection)
+
+The agent follows Unix conventions - **results go to stdout, progress goes to stderr**:
+
+```bash
+# Save result to file (see progress on screen)
+./agent.sh "Get AI news from Hacker News" > news.txt
+
+# Pipe result to another command
+./agent.sh "List Python files" | grep "test"
+./agent.sh "Get TODO comments" | wc -l
+
+# Silent operation (only result, no progress)
+./agent.sh "Calculate total" 2>/dev/null
+
+# Separate result and logs
+./agent.sh "Analyze code" > result.txt 2> log.txt
+
+# Use in scripts
+result=$(./agent.sh "Get data" 2>/dev/null)
+echo "Answer: $result"
+
+# Chain with other Unix tools
+./agent.sh "Get stats" | jq '.count' | bc
+```
+
+See [UNIX_IO.md](UNIX_IO.md) for detailed documentation on I/O design and more examples.
+
 ### Using Templates
 
 Templates provide reusable tool sets for specific use cases:
@@ -132,14 +160,23 @@ ANTHROPIC_API_KEY=sk-ant-your-key # For Anthropic
 
 Optional configuration:
 ```bash
-LLM_PROVIDER=openai     # openai or anthropic
-LLM_MODEL=gpt-4         # Model to use
-MAX_ITERATIONS=10       # Max agent loop iterations
-COMMAND_TIMEOUT=30      # Timeout for commands (seconds)
-MAX_RETRIES=3           # LLM call retries
-MAX_OUTPUT_SIZE=5000    # Output truncation size
-LOG_LEVEL=INFO          # DEBUG, INFO, WARNING, ERROR
+LLM_PROVIDER=openai        # openai or anthropic
+LLM_MODEL=gpt-4            # Model to use
+MAX_ITERATIONS=10          # Max agent loop iterations
+COMMAND_TIMEOUT=30         # Timeout for commands (seconds)
+MAX_RETRIES=3              # LLM call retries
+MAX_OUTPUT_SIZE=5000       # Output truncation size
+LOG_LEVEL=WARNING          # DEBUG, INFO, WARNING, ERROR (WARNING recommended)
+AGENT_VERBOSITY=normal     # quiet, normal, verbose, debug
 ```
+
+**Verbosity levels** (controls stderr output):
+- `quiet` - Only critical errors
+- `normal` - Key actions and results (default)
+- `verbose` - Include agent thoughts
+- `debug` - All logs and details
+
+**Note**: stdout always contains only the final result, regardless of verbosity.
 
 ## 🔧 Advanced Usage
 
@@ -283,6 +320,7 @@ Log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`
 
 - [Templates Guide](templates/README.md) - 50+ reusable tool templates
 - [Examples Guide](examples/README.md) - 4 complete use cases
+- [Unix I/O Guide](UNIX_IO.md) - Pipes, redirection, and composition
 - [QUICKSTART.md](QUICKSTART.md) - Quick start guide
 - [LICENSE](LICENSE) - MIT License
 
