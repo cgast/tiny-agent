@@ -11,14 +11,6 @@ import shlex
 from pathlib import Path
 from typing import Optional
 
-# Load environment variables from .env file
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    # dotenv not installed, environment variables must be set manually
-    pass
-
 # Configure logging
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -52,10 +44,6 @@ logger.setLevel(verbosity_to_log_level.get(CONFIG["verbosity"], logging.INFO))
 
 # Output helpers with verbosity control
 # Following Unix conventions: informational output goes to stderr, results to stdout
-def print_quiet(msg: str):
-    """Always print to stderr (even in quiet mode) - for critical info"""
-    print(msg, file=sys.stderr)
-
 def print_normal(msg: str):
     """Print to stderr in normal, verbose, debug modes"""
     if CONFIG["verbosity"] in ["normal", "verbose", "debug"]:
@@ -70,11 +58,6 @@ def print_debug(msg: str):
     """Print to stderr only in debug mode"""
     if CONFIG["verbosity"] == "debug":
         print(msg, file=sys.stderr)
-
-def print_separator():
-    """Print section separator to stderr (not in quiet mode)"""
-    if CONFIG["verbosity"] != "quiet":
-        print(file=sys.stderr)
 
 def print_result(msg: str):
     """Print final result to stdout (for piping/redirection)"""
