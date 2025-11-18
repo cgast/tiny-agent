@@ -12,6 +12,27 @@ if [ ! -f .env ]; then
     echo ""
 fi
 
+# Set up Python virtual environment
+if [ ! -d .venv ]; then
+    echo "🐍 Creating Python virtual environment..."
+    python3 -m venv .venv
+    echo "✅ Virtual environment created"
+    echo ""
+fi
+
+# Install Python dependencies
+echo "📦 Installing Python dependencies..."
+if [ -f .venv/bin/activate ]; then
+    source .venv/bin/activate
+    pip install --upgrade pip -q
+    pip install -r requirements.txt -q
+    echo "✅ Dependencies installed"
+    echo ""
+else
+    echo "⚠️  Virtual environment not found, skipping dependency installation"
+    echo ""
+fi
+
 # Create example workspace
 if [ ! -d workspace ]; then
     echo "📁 Creating example workspace..."
@@ -45,17 +66,17 @@ EOF
     echo ""
 fi
 
-# Make run script executable
-chmod +x run-agent.sh
+# Make agent script executable
+chmod +x agent.sh
 
 echo "✅ Setup complete!"
 echo ""
 echo "Next steps:"
 echo "  1. Edit .env and add your API key"
-echo "  2. Run: ./run-agent.sh 'List all files in workspace'"
+echo "  2. Run: ./agent.sh 'List all files in workspace'"
 echo ""
 echo "Example tasks:"
-echo "  ./run-agent.sh 'Find all Python files'"
-echo "  ./run-agent.sh 'Count lines of code'"
-echo "  ./run-agent.sh 'Search for TODO comments'"
-echo "  ./run-agent.sh 'What files are larger than 1KB?'"
+echo "  ./agent.sh 'Find all Python files'"
+echo "  ./agent.sh 'Count lines of code'"
+echo "  ./agent.sh --mode sandbox 'Search for TODO comments'"
+echo "  ./agent.sh -m sandbox -w ./myproject 'Analyze this code'"

@@ -10,36 +10,27 @@ A minimal (~380 lines) agent that executes tasks using command-line tools, can b
 - ✅ **Extensible**: 50+ tools in templates, 4 complete examples
 - ✅ **Secure**: Sandboxed Docker execution, input validation, path traversal protection
 - ✅ **Robust**: Retry logic with exponential backoff, timeout handling, comprehensive error handling
-- ✅ **Configurable**: Environment variables and config.yaml support
+- ✅ **Configurable**: Environment variables via .env file
 - ✅ **Observable**: Structured logging with configurable levels
 - ✅ **LLM Agnostic**: OpenAI, Anthropic, or bring your own
 - ✅ **MIT Licensed**: Free to use and modify
 
 ## 🚀 Quick Start
 
-### Using Docker (Recommended)
-
 ```bash
 # 1. Clone and setup
 git clone <repo-url>
 cd tiny-agent
+./setup.sh
 
-# 2. Setup environment
-cp env.example .env
-nano .env  # Add your OPENAI_API_KEY or ANTHROPIC_API_KEY
+# 2. Edit .env and add your API key
+nano .env
 
-# 3. Build and run
-chmod +x run-agent.sh
-docker build -t cli-agent:latest .
-./run-agent.sh "Find all Python files"
-```
+# 3. Run the agent
+./agent.sh "Find all Python files"
 
-### Using Make
-
-```bash
-make setup  # Initial setup
-make build  # Build Docker image
-make run TASK='Find all Python files'
+# Or run in Docker sandbox
+./agent.sh --mode sandbox "Find all Python files"
 ```
 
 ## 📁 Project Structure
@@ -48,8 +39,8 @@ make run TASK='Find all Python files'
 tiny-agent/
 ├── agent.py                 # Core agent (~380 lines)
 ├── commands.json            # Default tool definitions
-├── config.yaml.example      # Configuration template
-├── env.example              # Environment variables template
+├── .env.example             # Environment variables template
+├── requirements.txt         # Python dependencies
 │
 ├── templates/               # ⭐ 50+ reusable tool templates
 │   ├── basic/              # File operations, text processing, system info
@@ -67,8 +58,8 @@ tiny-agent/
 │
 ├── Dockerfile               # Docker sandbox
 ├── docker-compose.yml       # Docker Compose config
-├── run-agent.sh             # Convenient wrapper script
-├── Makefile                 # Make commands
+├── setup.sh                 # Automated setup script
+├── agent.sh                 # Unified runner (local/sandbox)
 └── README.md                # This file
 ```
 
@@ -77,17 +68,15 @@ tiny-agent/
 ### Basic Tasks
 
 ```bash
-# File operations
-./run-agent.sh "Find all Python files"
-./run-agent.sh "Count lines of code in all .py files"
-./run-agent.sh "Search for TODO comments"
+# Local execution (default)
+./agent.sh "Find all Python files"
+./agent.sh "Count lines of code in all .py files"
+./agent.sh "Search for TODO comments"
 
-# Data analysis
-./run-agent.sh "Summarize the sales.csv data"
-./run-agent.sh "How many errors are in the logs?"
-
-# Code analysis
-./run-agent.sh "Analyze this codebase and give me a summary"
+# Sandbox execution (Docker)
+./agent.sh --mode sandbox "Summarize the sales.csv data"
+./agent.sh -m sandbox -w ./logs "How many errors are in the logs?"
+./agent.sh -m sandbox "Analyze this codebase and give me a summary"
 ```
 
 ### Using Templates
@@ -97,8 +86,7 @@ Templates provide reusable tool sets for specific use cases:
 ```bash
 # Use a specific template
 cp templates/development/git-tools.json commands.json
-docker build -t cli-agent:latest .
-./run-agent.sh "Show me the recent commit history"
+./agent.sh "Show me the recent commit history"
 
 # Combine multiple templates
 jq -s 'add' \
@@ -116,13 +104,11 @@ Examples provide complete, ready-to-use configurations:
 ```bash
 # Use the code analysis example
 cp examples/analyze-codebase/commands.json commands.json
-docker build -t cli-agent:latest .
-./run-agent.sh "Analyze this Python project"
+./agent.sh "Analyze this Python project"
 
 # Use the log analysis example
 cp examples/log-analysis/commands.json commands.json
-docker build -t cli-agent:latest .
-./run-agent.sh "Find all errors in the logs" ./logs
+./agent.sh -w ./logs "Find all errors in the logs"
 ```
 
 See [examples/README.md](examples/README.md) for all available examples.
@@ -144,7 +130,7 @@ OPENAI_API_KEY=sk-your-key        # For OpenAI
 ANTHROPIC_API_KEY=sk-ant-your-key # For Anthropic
 ```
 
-Optional configuration (override config.yaml):
+Optional configuration:
 ```bash
 LLM_PROVIDER=openai     # openai or anthropic
 LLM_MODEL=gpt-4         # Model to use
@@ -154,16 +140,6 @@ MAX_RETRIES=3           # LLM call retries
 MAX_OUTPUT_SIZE=5000    # Output truncation size
 LOG_LEVEL=INFO          # DEBUG, INFO, WARNING, ERROR
 ```
-
-### Configuration File
-
-Copy and customize the config file:
-
-```bash
-cp config.yaml.example config.yaml
-```
-
-See [config.yaml.example](config.yaml.example) for all options.
 
 ## 🔧 Advanced Usage
 
@@ -189,19 +165,26 @@ Create your own tools in `commands.json`:
 }
 ```
 
-### Running Without Docker
+### Execution Modes
+
+**Local mode (default)** - Runs on your machine using `.venv`:
 
 ```bash
-# 1. Setup
-mkdir -p ~/.agent
-cp commands.json ~/.agent/
-pip install openai  # or anthropic
+./agent.sh "Your task here"
+```
 
-# 2. Configure
-export OPENAI_API_KEY="your-key"
+**Sandbox mode** - Runs in isolated Docker container:
 
-# 3. Run
-./agent.py "Your task here"
+```bash
+./agent.sh --mode sandbox "Your task here"
+./agent.sh -m sandbox -w /path/to/workspace "Your task here"
+```
+
+**Direct execution** (without wrapper script):
+
+```bash
+source .venv/bin/activate
+python3 agent.py "Your task here"
 ```
 
 ### Different LLM Providers
@@ -251,7 +234,7 @@ export ANTHROPIC_API_KEY=your-key
 | Error Handling | Basic | Comprehensive with retries |
 | Validation | None | Full parameter validation |
 | Security | Basic | Path traversal protection, input sanitization |
-| Configuration | Hardcoded | Environment + config.yaml |
+| Configuration | Hardcoded | Environment variables (.env) |
 | Logging | print() only | Structured logging with levels |
 | Templates | 5 tools | 50+ tools in templates |
 | Examples | None | 4 complete examples |
@@ -260,16 +243,29 @@ export ANTHROPIC_API_KEY=your-key
 
 ## 🛠️ Development
 
-### Project Commands
+### Common Commands
 
 ```bash
-make help     # Show all commands
-make setup    # Initial project setup
-make build    # Build Docker image
-make run      # Run agent (set TASK)
-make shell    # Open shell in container
-make clean    # Clean up Docker image
-make test     # Run test tasks
+# Setup
+./setup.sh
+
+# Build Docker image
+docker build -t cli-agent:latest .
+
+# Run tests
+./agent.sh "List all files in the current directory"
+./agent.sh "Find all Python files"
+
+# Shell in Docker container
+docker run --rm -it \
+  -v $(pwd)/workspace:/workspace \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  cli-agent:latest \
+  /bin/bash
+
+# Clean up
+docker rmi cli-agent:latest
+rm -rf workspace/
 ```
 
 ### Logging
@@ -278,7 +274,7 @@ Set log level for debugging:
 
 ```bash
 export LOG_LEVEL=DEBUG
-./run-agent.sh "Your task"
+./agent.sh "Your task"
 ```
 
 Log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`
@@ -302,16 +298,18 @@ Contributions welcome! Areas for improvement:
 
 ## 🐛 Troubleshooting
 
-**"API key error"**
+**"API key error" or "401 Authentication Error"**
 - Check `.env` file has the correct key
-- Ensure key matches your LLM provider
+- Ensure key matches your LLM provider (OPENAI_API_KEY or ANTHROPIC_API_KEY)
+- `./agent.sh` automatically loads `.env`
+- Verify `python-dotenv` is installed: `pip install python-dotenv`
 
 **"Command not found"**
 - Add the tool to `commands.json`
 - Or use a template from `templates/`
 
 **"Docker permission denied"**
-- Run `chmod +x run-agent.sh`
+- Run `chmod +x agent.sh`
 - Check Docker is installed and running
 
 **"Validation error: Invalid path"**

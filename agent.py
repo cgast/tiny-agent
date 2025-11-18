@@ -11,6 +11,14 @@ import shlex
 from pathlib import Path
 from typing import Optional
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not installed, environment variables must be set manually
+    pass
+
 # Configure logging
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -18,9 +26,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Load configuration from environment or config.yaml
+# Load configuration from environment variables
 def load_config() -> dict:
-    """Load configuration from environment variables"""
+    """Load configuration from environment variables (set in .env file)"""
     return {
         "llm_provider": os.getenv("LLM_PROVIDER", "openai"),
         "llm_model": os.getenv("LLM_MODEL", "gpt-4"),
