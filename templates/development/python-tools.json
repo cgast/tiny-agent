@@ -1,0 +1,92 @@
+[
+  {
+    "name": "python_run_script",
+    "description": "Execute a Python script",
+    "command": "python3 {script}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "script": {
+          "type": "string",
+          "description": "Path to Python script"
+        }
+      },
+      "required": ["script"]
+    }
+  },
+  {
+    "name": "python_check_syntax",
+    "description": "Check Python file syntax",
+    "command": "python3 -m py_compile {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Python file to check"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "find_python_files",
+    "description": "Find all Python files in directory",
+    "command": "find {path} -name '*.py' -type f",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "count_python_lines",
+    "description": "Count total lines of Python code",
+    "command": "find {path} -name '*.py' -exec wc -l {} + | tail -1",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to analyze"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "find_python_imports",
+    "description": "Find all import statements in Python files",
+    "command": "grep -rh '^import \\|^from ' {path} --include='*.py' | sort -u",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "find_python_todos",
+    "description": "Find TODO comments in Python code",
+    "command": "grep -rn 'TODO\\|FIXME\\|XXX' {path} --include='*.py'",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "check_process",
+    "description": "Check if a process is running",
+    "command": "ps aux | grep {process}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "process": {
+          "type": "string",
+          "description": "Process name to search for"
+        }
+      },
+      "required": ["process"]
+    }
+  },
+  {
+    "name": "get_system_uptime",
+    "description": "Show system uptime",
+    "command": "uptime",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "check_disk_space",
+    "description": "Show disk space usage",
+    "command": "df -h",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_memory_usage",
+    "description": "Show memory usage",
+    "command": "free -h",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+]

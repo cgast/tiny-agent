@@ -1,0 +1,28 @@
+# Configuration for CLI Agent
+# Copy this file to config.yaml and customize as needed
+# Environment variables take precedence over values in this file
+
+# LLM Configuration
+llm_provider: openai  # Options: openai, anthropic
+llm_model: gpt-4      # For OpenAI: gpt-4, gpt-3.5-turbo
+                       # For Anthropic: claude-3-opus-20240229, claude-3-sonnet-20240229
+
+# Agent Behavior
+max_iterations: 10    # Maximum number of iterations before stopping
+command_timeout: 30   # Timeout for each command execution (seconds)
+max_retries: 3        # Number of retries for failed LLM calls
+max_output_size: 5000 # Maximum output size before truncation (characters)
+
+# Logging
+log_level: INFO       # Options: DEBUG, INFO, WARNING, ERROR
+
+# Environment Variables (set these in .env file)
+# - OPENAI_API_KEY: Your OpenAI API key (required if llm_provider is openai)
+# - ANTHROPIC_API_KEY: Your Anthropic API key (required if llm_provider is anthropic)
+# - LLM_PROVIDER: Override llm_provider from config
+# - LLM_MODEL: Override llm_model from config
+# - MAX_ITERATIONS: Override max_iterations from config
+# - COMMAND_TIMEOUT: Override command_timeout from config
+# - MAX_RETRIES: Override max_retries from config
+# - MAX_OUTPUT_SIZE: Override max_output_size from config
+# - LOG_LEVEL: Override log_level from config

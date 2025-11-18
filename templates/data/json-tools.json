@@ -1,0 +1,66 @@
+[
+  {
+    "name": "read_json",
+    "description": "Read and pretty-print JSON file",
+    "command": "cat {file} | jq .",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "JSON file path"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "query_json",
+    "description": "Query JSON file using jq expression",
+    "command": "cat {file} | jq '{query}'",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "JSON file path"
+        },
+        "query": {
+          "type": "string",
+          "description": "jq query expression (e.g., '.items[]', '.name')"
+        }
+      },
+      "required": ["file", "query"]
+    }
+  },
+  {
+    "name": "validate_json",
+    "description": "Validate JSON file syntax",
+    "command": "jq empty {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "JSON file to validate"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "find_json_files",
+    "description": "Find all JSON files in directory",
+    "command": "find {path} -name '*.json' -type f",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  }
+]

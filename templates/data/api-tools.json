@@ -1,0 +1,66 @@
+[
+  {
+    "name": "http_get",
+    "description": "Make HTTP GET request",
+    "command": "curl -s {url}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL to request"
+        }
+      },
+      "required": ["url"]
+    }
+  },
+  {
+    "name": "http_get_json",
+    "description": "Make HTTP GET request and format JSON response",
+    "command": "curl -s {url} | jq .",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL to request"
+        }
+      },
+      "required": ["url"]
+    }
+  },
+  {
+    "name": "http_headers",
+    "description": "Get HTTP headers from URL",
+    "command": "curl -I {url}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL to check"
+        }
+      },
+      "required": ["url"]
+    }
+  },
+  {
+    "name": "download_file",
+    "description": "Download file from URL",
+    "command": "wget -O {output} {url}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL to download from"
+        },
+        "output": {
+          "type": "string",
+          "description": "Output file path"
+        }
+      },
+      "required": ["url", "output"]
+    }
+  }
+]

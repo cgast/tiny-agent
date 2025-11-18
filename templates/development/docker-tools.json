@@ -1,0 +1,47 @@
+[
+  {
+    "name": "find_dockerfiles",
+    "description": "Find all Dockerfiles in directory",
+    "command": "find {path} -name 'Dockerfile*' -o -name '*.dockerfile'",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "find_docker_compose",
+    "description": "Find docker-compose files",
+    "command": "find {path} -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml'",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "check_dockerfile_syntax",
+    "description": "Validate Dockerfile syntax",
+    "command": "cat {dockerfile}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "dockerfile": {
+          "type": "string",
+          "description": "Path to Dockerfile"
+        }
+      },
+      "required": ["dockerfile"]
+    }
+  }
+]

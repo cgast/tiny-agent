@@ -1,0 +1,134 @@
+[
+  {
+    "name": "find_files_by_extension",
+    "description": "Find all files with specific extension",
+    "command": "find {path} -name '*.{extension}' -type f",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        },
+        "extension": {
+          "type": "string",
+          "description": "File extension (e.g., 'py', 'js', 'go')"
+        }
+      },
+      "required": ["path", "extension"]
+    }
+  },
+  {
+    "name": "count_lines_by_extension",
+    "description": "Count total lines of code for file extension",
+    "command": "find {path} -name '*.{extension}' -exec wc -l {} + | tail -1",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        },
+        "extension": {
+          "type": "string",
+          "description": "File extension"
+        }
+      },
+      "required": ["path", "extension"]
+    }
+  },
+  {
+    "name": "find_todos",
+    "description": "Find TODO, FIXME, and XXX comments",
+    "command": "grep -rn 'TODO\\|FIXME\\|XXX\\|HACK' {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "find_imports",
+    "description": "Find all import statements",
+    "command": "grep -rh '^import \\|^from ' {path} --include='*.py' | sort -u",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "list_files",
+    "description": "List files in directory",
+    "command": "ls -lah {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "read_file",
+    "description": "Read file contents",
+    "command": "cat {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "File path"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "git_log",
+    "description": "Show recent git commits",
+    "command": "git -C {path} log --oneline -n {count}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Repository path"
+        },
+        "count": {
+          "type": "string",
+          "description": "Number of commits"
+        }
+      },
+      "required": ["path", "count"]
+    }
+  },
+  {
+    "name": "get_directory_structure",
+    "description": "Show directory tree structure",
+    "command": "find {path} -type f | head -n 50",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path"
+        }
+      },
+      "required": ["path"]
+    }
+  }
+]
