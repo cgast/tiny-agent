@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Quick setup script for CLI Agent
 
 echo "🚀 Setting up CLI Agent..."

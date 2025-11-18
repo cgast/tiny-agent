@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Wrapper script to run CLI agent in Docker sandbox
 
 set -e
