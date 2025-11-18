@@ -1,0 +1,119 @@
+[
+  {
+    "name": "list_files",
+    "description": "List files in a directory with details",
+    "command": "ls -la {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path to list"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "read_file",
+    "description": "Read contents of a file",
+    "command": "cat {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "File path to read"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "write_file",
+    "description": "Write or append content to a file",
+    "command": "echo {content} > {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "Content to write"
+        },
+        "file": {
+          "type": "string",
+          "description": "File path to write to"
+        }
+      },
+      "required": ["content", "file"]
+    }
+  },
+  {
+    "name": "copy_file",
+    "description": "Copy a file or directory",
+    "command": "cp -r {source} {destination}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Source file or directory"
+        },
+        "destination": {
+          "type": "string",
+          "description": "Destination path"
+        }
+      },
+      "required": ["source", "destination"]
+    }
+  },
+  {
+    "name": "move_file",
+    "description": "Move or rename a file or directory",
+    "command": "mv {source} {destination}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Source file or directory"
+        },
+        "destination": {
+          "type": "string",
+          "description": "Destination path"
+        }
+      },
+      "required": ["source", "destination"]
+    }
+  },
+  {
+    "name": "delete_file",
+    "description": "Delete a file or directory",
+    "command": "rm -rf {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to delete"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "create_directory",
+    "description": "Create a new directory",
+    "command": "mkdir -p {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path to create"
+        }
+      },
+      "required": ["path"]
+    }
+  }
+]

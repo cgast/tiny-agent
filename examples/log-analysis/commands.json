@@ -1,0 +1,145 @@
+[
+  {
+    "name": "find_log_files",
+    "description": "Find all log files",
+    "command": "find {path} -name '*.log' -type f",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "tail_log",
+    "description": "Show last N lines of log file",
+    "command": "tail -n {lines} {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file path"
+        },
+        "lines": {
+          "type": "string",
+          "description": "Number of lines"
+        }
+      },
+      "required": ["file", "lines"]
+    }
+  },
+  {
+    "name": "grep_errors",
+    "description": "Find error messages in log",
+    "command": "grep -i 'error\\|exception\\|failed\\|fatal' {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file to search"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "grep_warnings",
+    "description": "Find warning messages in log",
+    "command": "grep -i 'warn\\|warning' {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file to search"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "count_errors",
+    "description": "Count error occurrences",
+    "command": "grep -ic 'error\\|exception\\|failed' {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "search_pattern",
+    "description": "Search for specific pattern in log",
+    "command": "grep -n '{pattern}' {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Pattern to search"
+        }
+      },
+      "required": ["file", "pattern"]
+    }
+  },
+  {
+    "name": "get_log_size",
+    "description": "Get log file size",
+    "command": "du -h {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file path"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "count_unique_ips",
+    "description": "Count unique IP addresses in log",
+    "command": "grep -oE '([0-9]{1,3}\\.){3}[0-9]{1,3}' {file} | sort -u | wc -l",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "get_log_timerange",
+    "description": "Show first and last log entry timestamps",
+    "command": "echo 'First:' && head -n 1 {file} && echo 'Last:' && tail -n 1 {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file"
+        }
+      },
+      "required": ["file"]
+    }
+  }
+]

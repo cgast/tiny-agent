@@ -1,0 +1,85 @@
+[
+  {
+    "name": "get_disk_usage",
+    "description": "Get disk usage of a directory",
+    "command": "du -sh {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "get_disk_usage_detailed",
+    "description": "Get detailed disk usage breakdown",
+    "command": "du -h --max-depth={depth} {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory path"
+        },
+        "depth": {
+          "type": "string",
+          "description": "Maximum depth to show (e.g., '1', '2')"
+        }
+      },
+      "required": ["path", "depth"]
+    }
+  },
+  {
+    "name": "check_file_type",
+    "description": "Determine file type",
+    "command": "file {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to check"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "get_file_info",
+    "description": "Get detailed file information",
+    "command": "stat {path}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "File or directory path"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "find_large_files",
+    "description": "Find files larger than specified size",
+    "command": "find {path} -type f -size +{size}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search in"
+        },
+        "size": {
+          "type": "string",
+          "description": "Minimum size (e.g., '1M', '100k')"
+        }
+      },
+      "required": ["path", "size"]
+    }
+  }
+]

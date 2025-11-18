@@ -1,0 +1,70 @@
+[
+  {
+    "name": "read_csv_head",
+    "description": "Show first N rows of CSV file",
+    "command": "head -n {lines} {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "CSV file path"
+        },
+        "lines": {
+          "type": "string",
+          "description": "Number of lines to show"
+        }
+      },
+      "required": ["file", "lines"]
+    }
+  },
+  {
+    "name": "count_csv_rows",
+    "description": "Count rows in CSV file",
+    "command": "wc -l {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "CSV file path"
+        }
+      },
+      "required": ["file"]
+    }
+  },
+  {
+    "name": "find_csv_files",
+    "description": "Find all CSV files in directory",
+    "command": "find {path} -name '*.csv' -type f",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to search"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "csv_column_extract",
+    "description": "Extract specific column from CSV",
+    "command": "cut -d',' -f{column} {file}",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "CSV file path"
+        },
+        "column": {
+          "type": "string",
+          "description": "Column number (1-indexed)"
+        }
+      },
+      "required": ["file", "column"]
+    }
+  }
+]
