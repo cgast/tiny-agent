@@ -155,15 +155,19 @@ def validate_arguments(cmd_config: dict, args: dict) -> tuple[bool, str]:
         if param not in args or args[param] == "":
             return False, f"Missing required parameter: {param}"
 
-    # Basic path traversal check
+    # Basic path traversal check (stricter in Docker sandbox)
+    in_docker = os.path.exists("/.dockerenv")
     for key, value in args.items():
         if isinstance(value, str):
-            # Check for path traversal attempts
-            if ".." in value or value.startswith("/"):
-                logger.warning(f"Potential path traversal detected in {key}: {value}")
-                # Allow absolute paths for workspace, but log them
-                if not value.startswith("/workspace"):
-                    return False, f"Invalid path in {key}: {value}"
+            # Check for path traversal attempts with ".."
+            if ".." in value:
+                logger.warning(f"Path traversal attempt detected in {key}: {value}")
+                return False, f"Invalid path in {key}: path traversal not allowed"
+
+            # In Docker, restrict to /workspace only
+            if in_docker and value.startswith("/") and not value.startswith("/workspace"):
+                logger.warning(f"Outside workspace access in {key}: {value}")
+                return False, f"Invalid path in {key}: must be within /workspace"
 
     return True, ""
 
@@ -179,21 +183,23 @@ def execute_command(cmd_config: dict, args: dict) -> str:
     cmd_template = cmd_config["command"]
     logger.debug(f"Executing command template: {cmd_template}")
 
-    # Simple substitution
+    # Simple substitution - build command as a list for subprocess
     cmd_parts = cmd_template.split()
     cmd = []
     for part in cmd_parts:
         if part.startswith("{") and part.endswith("}"):
             arg_name = part[1:-1]
             arg_value = str(args.get(arg_name, ""))
-            # Use shlex.quote for safe argument handling
-            cmd.append(shlex.quote(arg_value) if arg_value else "")
+            # Don't quote - subprocess with shell=False handles this safely
+            # The list-based approach automatically protects against injection
+            if arg_value:
+                cmd.append(arg_value)
         else:
             cmd.append(part)
 
     try:
         timeout = CONFIG.get("command_timeout", 30)
-        logger.debug(f"Running: {' '.join(cmd)}")
+        logger.debug(f"Running: {cmd}")
 
         result = subprocess.run(
             cmd,
