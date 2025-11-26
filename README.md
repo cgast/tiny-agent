@@ -11,11 +11,12 @@
 ## ⭐ Key Features
 
 - ✅ **Minimal Core**: ~380 lines of clean, readable Python code
+- ✅ **Interactive Mode**: Aider-like REPL with slash commands, history, and undo
 - ✅ **Three Interfaces**: CLI, HTTP API, and Pure Core
 - ✅ **Extensible**: 50+ tools in templates, 4 complete examples
 - ✅ **Secure**: Sandboxed Docker execution, input validation, path traversal protection
 - ✅ **Robust**: Retry logic with exponential backoff, timeout handling, comprehensive error handling
-- ✅ **Observable**: Structured logging with configurable levels
+- ✅ **Observable**: Structured logging with configurable levels, token usage tracking
 - ✅ **LLM Agnostic**: OpenAI, Anthropic, or bring your own
 - ✅ **Unix Philosophy**: stdout for results, stderr for progress - composable with pipes
 - ✅ **MIT Licensed**: Free to use and modify
@@ -171,6 +172,77 @@ python agent_cli.py "Your task here"
 ```
 
 See [UNIX_IO.md](UNIX_IO.md) for detailed I/O documentation.
+
+### Interactive Mode
+
+Start an interactive session with slash commands, command history, and more:
+
+```bash
+# Start interactive mode
+./agent.sh -i
+./agent.sh --interactive
+
+# Or just run without arguments
+./agent.sh
+```
+
+**Available Slash Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show all available commands |
+| `/tools` | List available tools |
+| `/run <cmd>` | Run a shell command and show output |
+| `/clear` | Clear conversation history |
+| `/undo` | Undo last file change |
+| `/tokens` | Show token usage statistics |
+| `/verbose [level]` | Set verbosity (quiet/normal/verbose/debug) |
+| `/model [name]` | Show or change current model |
+| `/status` | Show session status |
+| `/history` | Show command history |
+| `/quit`, `/exit` | Exit interactive mode |
+
+**Features:**
+
+- **Command History**: Use ↑/↓ arrows to navigate, Ctrl+R to search
+- **Tab Completion**: Complete slash commands with Tab
+- **Token Tracking**: See input/output token usage after each task
+- **Undo Support**: Revert file changes made by the agent
+- **Model Switching**: Change LLM model mid-session
+
+**Example Session:**
+
+```
+╭─────────────────────────────────────────────────╮
+│           Tiny Agent - Interactive Mode         │
+│        Type /help for available commands        │
+╰─────────────────────────────────────────────────╯
+  Model: openai/gpt-4
+  Tools: 6 loaded
+
+tiny-agent> /tools
+Available Tools:
+
+  list_files
+    List files in a directory
+    Parameters: path
+  ...
+
+tiny-agent> Find all Python files in src/
+🎯 Goal: Find all Python files in src/
+🔧 Executing: find_files({'path': 'src', 'pattern': '*.py'})
+📋 Result: src/main.py
+src/utils.py
+...
+
+📊 Tokens: 1,234 (890 in / 344 out) | Calls: 2
+
+tiny-agent> /undo
+Undone: restored src/main.py to previous version
+
+tiny-agent> /quit
+Goodbye!
+```
 
 ### HTTP API Usage
 

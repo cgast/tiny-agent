@@ -14,12 +14,14 @@ NC='\033[0m'
 MODE="local"
 WORKSPACE="."
 VERBOSITY="normal"  # quiet, normal, verbose, debug
+INTERACTIVE=false
 
 # Usage
 usage() {
-    echo -e "${BLUE}Usage: $0 [OPTIONS] '<task>'${NC}"
+    echo -e "${BLUE}Usage: $0 [OPTIONS] ['<task>']${NC}"
     echo ""
     echo "Options:"
+    echo "  -i, --interactive            Start interactive mode with slash commands"
     echo "  -m, --mode <local|sandbox>   Execution mode (default: local)"
     echo "  -w, --workspace <path>       Workspace directory (default: .)"
     echo "  -v, --verbosity <level>      Output verbosity (default: normal)"
@@ -29,7 +31,19 @@ usage() {
     echo "                               debug   - All logs and details"
     echo "  -h, --help                   Show this help"
     echo ""
+    echo "Interactive Mode Commands:"
+    echo "  /help              Show available commands"
+    echo "  /tools             List available tools"
+    echo "  /clear             Clear conversation history"
+    echo "  /undo              Undo last file change"
+    echo "  /tokens            Show token usage"
+    echo "  /model [name]      Show or change model"
+    echo "  /verbose [level]   Set verbosity level"
+    echo "  /status            Show session status"
+    echo "  /quit              Exit interactive mode"
+    echo ""
     echo "Examples:"
+    echo "  $0 -i                                 Start interactive mode"
     echo "  $0 'Find all Python files'"
     echo "  $0 --mode sandbox 'Count lines of code'"
     echo "  $0 -m sandbox -w ./myproject 'Analyze this code'"
@@ -39,6 +53,10 @@ usage() {
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -i|--interactive)
+            INTERACTIVE=true
+            shift
+            ;;
         -m|--mode)
             MODE="$2"
             shift 2
@@ -61,10 +79,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validate task
-if [ -z "$TASK" ]; then
-    echo -e "${RED}Error: No task provided${NC}" >&2
-    usage
+# Validate: need either task or interactive mode
+if [ -z "$TASK" ] && [ "$INTERACTIVE" = false ]; then
+    # No task and not interactive - start interactive mode by default
+    INTERACTIVE=true
 fi
 
 # Validate mode
@@ -101,9 +119,14 @@ if [ "$MODE" = "local" ]; then
     set +a
     source .venv/bin/activate
 
-    echo -e "${BLUE}🎯 Task: $TASK${NC}" >&2
-    echo "" >&2
-    AGENT_VERBOSITY="$VERBOSITY" python3 agent.py "$TASK"
+    if [ "$INTERACTIVE" = true ]; then
+        echo "" >&2
+        AGENT_VERBOSITY="$VERBOSITY" python3 agent_cli.py --interactive
+    else
+        echo -e "${BLUE}🎯 Task: $TASK${NC}" >&2
+        echo "" >&2
+        AGENT_VERBOSITY="$VERBOSITY" python3 agent_cli.py "$TASK"
+    fi
 
 # Run in Docker sandbox
 elif [ "$MODE" = "sandbox" ]; then
@@ -137,18 +160,31 @@ elif [ "$MODE" = "sandbox" ]; then
     fi
 
     echo -e "${BLUE}📁 Workspace: $WORKSPACE_ABS${NC}" >&2
-    echo -e "${BLUE}🎯 Task: $TASK${NC}" >&2
-    echo "" >&2
 
-    # Run
-    docker run --rm -it \
-        -v "$WORKSPACE_ABS:/workspace:rw" \
-        -e OPENAI_API_KEY="${OPENAI_API_KEY}" \
-        -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
-        -e LLM_PROVIDER="${LLM_PROVIDER}" \
-        -e LLM_MODEL="${LLM_MODEL}" \
-        -e LOG_LEVEL="${LOG_LEVEL}" \
-        -e AGENT_VERBOSITY="${VERBOSITY}" \
-        cli-agent:latest \
-        "$TASK"
+    if [ "$INTERACTIVE" = true ]; then
+        echo "" >&2
+        docker run --rm -it \
+            -v "$WORKSPACE_ABS:/workspace:rw" \
+            -e OPENAI_API_KEY="${OPENAI_API_KEY}" \
+            -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+            -e LLM_PROVIDER="${LLM_PROVIDER}" \
+            -e LLM_MODEL="${LLM_MODEL}" \
+            -e LOG_LEVEL="${LOG_LEVEL}" \
+            -e AGENT_VERBOSITY="${VERBOSITY}" \
+            cli-agent:latest \
+            --interactive
+    else
+        echo -e "${BLUE}🎯 Task: $TASK${NC}" >&2
+        echo "" >&2
+        docker run --rm -it \
+            -v "$WORKSPACE_ABS:/workspace:rw" \
+            -e OPENAI_API_KEY="${OPENAI_API_KEY}" \
+            -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+            -e LLM_PROVIDER="${LLM_PROVIDER}" \
+            -e LLM_MODEL="${LLM_MODEL}" \
+            -e LOG_LEVEL="${LOG_LEVEL}" \
+            -e AGENT_VERBOSITY="${VERBOSITY}" \
+            cli-agent:latest \
+            "$TASK"
+    fi
 fi
