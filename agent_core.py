@@ -60,6 +60,7 @@ class AgentCallbacks:
         on_tool_result: Optional[Callable[[str], None]] = None,
         on_need_input: Optional[Callable[[str], str]] = None,
         on_error: Optional[Callable[[str], None]] = None,
+        on_token_usage: Optional[Callable[[int, int], None]] = None,
     ):
         """
         Initialize callbacks for agent events.
@@ -71,6 +72,7 @@ class AgentCallbacks:
             on_tool_result: Called after tool execution (result)
             on_need_input: Called when agent needs user input (question) -> response
             on_error: Called when an error occurs (error_msg)
+            on_token_usage: Called with token counts (input_tokens, output_tokens)
         """
         self.on_iteration = on_iteration or (lambda i, m: None)
         self.on_thinking = on_thinking or (lambda c: None)
@@ -78,6 +80,20 @@ class AgentCallbacks:
         self.on_tool_result = on_tool_result or (lambda r: None)
         self.on_need_input = on_need_input or (lambda q: "/quit")
         self.on_error = on_error or (lambda e: None)
+        self.on_token_usage = on_token_usage or (lambda i, o: None)
+
+
+class LLMResponse:
+    """Wrapper for LLM response with token usage"""
+
+    def __init__(self, message: Any, input_tokens: int = 0, output_tokens: int = 0):
+        self.message = message
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+
+        # Proxy common attributes from the message
+        self.content = getattr(message, 'content', None)
+        self.tool_calls = getattr(message, 'tool_calls', None)
 
 
 def call_llm(
@@ -85,8 +101,8 @@ def call_llm(
     tools: List[Dict],
     config: AgentConfig,
     retry_count: int = 0,
-) -> Optional[Any]:
-    """Call LLM with messages and available tools"""
+) -> Optional[LLMResponse]:
+    """Call LLM with messages and available tools. Returns LLMResponse with token usage."""
     try:
         if config.llm_provider == "openai":
             import openai
@@ -101,7 +117,13 @@ def call_llm(
                 tools=tools,
                 tool_choice="auto",
             )
-            return response.choices[0].message
+
+            # Extract token usage
+            usage = response.usage
+            input_tokens = usage.prompt_tokens if usage else 0
+            output_tokens = usage.completion_tokens if usage else 0
+
+            return LLMResponse(response.choices[0].message, input_tokens, output_tokens)
 
         elif config.llm_provider == "anthropic":
             import anthropic
@@ -114,7 +136,13 @@ def call_llm(
             response = client.messages.create(
                 model=config.llm_model, messages=messages, tools=tools, max_tokens=2000
             )
-            return response
+
+            # Extract token usage from Anthropic response
+            usage = response.usage
+            input_tokens = usage.input_tokens if usage else 0
+            output_tokens = usage.output_tokens if usage else 0
+
+            return LLMResponse(response, input_tokens, output_tokens)
 
         else:
             raise ValueError(f"Unsupported LLM provider: {config.llm_provider}")
@@ -371,6 +399,9 @@ CRITICAL - Working with data:
             if response is None:
                 logger.error("LLM returned None, aborting")
                 return "Error: LLM call failed after retries"
+
+            # Report token usage
+            callbacks.on_token_usage(response.input_tokens, response.output_tokens)
 
             # Add to messages
             messages.append(
