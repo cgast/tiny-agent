@@ -28,6 +28,9 @@ class AgentConfig:
         command_timeout: int = 30,
         max_retries: int = 3,
         max_output_size: int = 5000,
+        auto_detect_cli: bool = False,
+        cli_allowlist: Optional[List[str]] = None,
+        cli_blocklist: Optional[List[str]] = None,
     ):
         self.llm_provider = llm_provider
         self.llm_model = llm_model
@@ -35,10 +38,15 @@ class AgentConfig:
         self.command_timeout = command_timeout
         self.max_retries = max_retries
         self.max_output_size = max_output_size
+        self.auto_detect_cli = auto_detect_cli
+        self.cli_allowlist = cli_allowlist
+        self.cli_blocklist = cli_blocklist
 
     @classmethod
     def from_env(cls) -> "AgentConfig":
         """Load configuration from environment variables"""
+        from cli_commands import parse_command_list
+
         return cls(
             llm_provider=os.getenv("LLM_PROVIDER", "openai"),
             llm_model=os.getenv("LLM_MODEL", "gpt-4"),
@@ -46,6 +54,9 @@ class AgentConfig:
             command_timeout=int(os.getenv("COMMAND_TIMEOUT", "30")),
             max_retries=int(os.getenv("MAX_RETRIES", "3")),
             max_output_size=int(os.getenv("MAX_OUTPUT_SIZE", "5000")),
+            auto_detect_cli=os.getenv("AUTO_DETECT_CLI", "").lower() in ("true", "1", "yes"),
+            cli_allowlist=parse_command_list(os.getenv("CLI_ALLOWLIST")),
+            cli_blocklist=parse_command_list(os.getenv("CLI_BLOCKLIST")),
         )
 
 
@@ -160,28 +171,61 @@ def call_llm(
             raise
 
 
-def load_commands(agent_dir: Path) -> tuple[List[Dict], List[Dict]]:
-    """Load available CLI commands from .agent directory"""
-    commands_file = agent_dir / "commands.json"
-    if not commands_file.exists():
-        return [], []
+def load_commands(agent_dir: Path, config: Optional[AgentConfig] = None) -> tuple[List[Dict], List[Dict]]:
+    """
+    Load available CLI commands from .agent directory and optionally auto-detect CLI tools.
 
-    with open(commands_file) as f:
-        commands = json.load(f)
+    Args:
+        agent_dir: Directory containing commands.json
+        config: Agent configuration (for auto-detect settings)
 
-    # Convert to OpenAI tool format
+    Returns:
+        Tuple of (tools, commands) where tools is OpenAI format and commands is raw config
+    """
     tools = []
-    for cmd in commands:
-        tools.append(
-            {
-                "type": "function",
-                "function": {
-                    "name": cmd["name"],
-                    "description": cmd["description"],
-                    "parameters": cmd.get("parameters", {"type": "object", "properties": {}}),
-                },
-            }
+    commands = []
+
+    # Load auto-detected CLI tools first (if enabled)
+    if config and config.auto_detect_cli:
+        from cli_commands import generate_cli_tools
+
+        cli_tools, cli_commands = generate_cli_tools(
+            allowlist=config.cli_allowlist,
+            blocklist=config.cli_blocklist,
         )
+        tools.extend(cli_tools)
+        commands.extend(cli_commands)
+        logger.info(f"Auto-detected {len(cli_commands)} CLI commands")
+
+    # Load manual commands from commands.json (these take precedence)
+    commands_file = agent_dir / "commands.json"
+    if commands_file.exists():
+        with open(commands_file) as f:
+            manual_commands = json.load(f)
+
+        # Track names to avoid duplicates (manual commands override auto-detected)
+        manual_names = {cmd["name"] for cmd in manual_commands}
+
+        # Remove auto-detected commands that have manual overrides
+        if config and config.auto_detect_cli:
+            tools = [t for t in tools if t["function"]["name"] not in manual_names]
+            commands = [c for c in commands if c["name"] not in manual_names]
+
+        # Add manual commands
+        for cmd in manual_commands:
+            tools.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": cmd["name"],
+                        "description": cmd["description"],
+                        "parameters": cmd.get("parameters", {"type": "object", "properties": {}}),
+                    },
+                }
+            )
+            commands.append(cmd)
+
+        logger.info(f"Loaded {len(manual_commands)} manual commands from commands.json")
 
     return tools, commands
 
@@ -353,7 +397,7 @@ def agent_loop(
 
     logger.info(f"Starting agent loop with max {config.max_iterations} iterations")
 
-    tools, commands = load_commands(agent_dir)
+    tools, commands = load_commands(agent_dir, config)
     cmd_map = {cmd["name"]: cmd for cmd in commands}
 
     logger.info(f"Loaded {len(commands)} commands")
