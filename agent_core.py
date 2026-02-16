@@ -24,13 +24,14 @@ class AgentConfig:
         self,
         llm_provider: str = "openai",
         llm_model: str = "gpt-4",
-        max_iterations: int = 10,
+        max_iterations: int = 50,
         command_timeout: int = 30,
         max_retries: int = 3,
         max_output_size: int = 5000,
         auto_detect_cli: bool = False,
         cli_allowlist: Optional[List[str]] = None,
         cli_blocklist: Optional[List[str]] = None,
+        completion_threshold: float = 0.8,
     ):
         self.llm_provider = llm_provider
         self.llm_model = llm_model
@@ -41,6 +42,7 @@ class AgentConfig:
         self.auto_detect_cli = auto_detect_cli
         self.cli_allowlist = cli_allowlist
         self.cli_blocklist = cli_blocklist
+        self.completion_threshold = max(0.0, min(1.0, completion_threshold))
 
     @classmethod
     def from_env(cls) -> "AgentConfig":
@@ -50,13 +52,14 @@ class AgentConfig:
         return cls(
             llm_provider=os.getenv("LLM_PROVIDER", "openai"),
             llm_model=os.getenv("LLM_MODEL", "gpt-4"),
-            max_iterations=int(os.getenv("MAX_ITERATIONS", "10")),
+            max_iterations=int(os.getenv("MAX_ITERATIONS", "50")),
             command_timeout=int(os.getenv("COMMAND_TIMEOUT", "30")),
             max_retries=int(os.getenv("MAX_RETRIES", "3")),
             max_output_size=int(os.getenv("MAX_OUTPUT_SIZE", "5000")),
             auto_detect_cli=os.getenv("AUTO_DETECT_CLI", "").lower() in ("true", "1", "yes"),
             cli_allowlist=parse_command_list(os.getenv("CLI_ALLOWLIST")),
             cli_blocklist=parse_command_list(os.getenv("CLI_BLOCKLIST")),
+            completion_threshold=float(os.getenv("COMPLETION_THRESHOLD", "0.8")),
         )
 
 
@@ -319,7 +322,13 @@ def execute_command(cmd_config: Dict, args: Dict, config: AgentConfig) -> str:
 
 
 def assess_completion(messages: List[Dict], goal: str, tools: List[Dict], config: AgentConfig) -> Dict:
-    """Ask the LLM to assess if the goal is complete and what to do next"""
+    """Ask the LLM to assess if the goal is complete and what to do next.
+
+    The assessment includes a confidence score (0.0-1.0) that is compared
+    against config.completion_threshold to decide whether the task is truly
+    finished. If confidence is below the threshold, the agent continues
+    working even if the LLM reports the task as complete.
+    """
     assessment_messages = messages + [
         {
             "role": "user",
@@ -329,8 +338,9 @@ Original goal: {goal}
 
 Based on the conversation so far, determine:
 1. Is the goal fully accomplished? (yes/no/partially)
-2. What is your assessment of the current state?
-3. What should happen next?
+2. What is your confidence that the solution is correct and complete? (0.0 to 1.0)
+3. What is your assessment of the current state?
+4. What should happen next?
    - If complete: respond with status 'complete'
    - If you know what to do next: respond with status 'continue' and describe the next action
    - If you need clarification: respond with status 'need_input' and provide a specific question
@@ -338,13 +348,24 @@ Based on the conversation so far, determine:
 Respond in JSON format:
 {{
     "status": "complete|continue|need_input",
+    "confidence": 0.0-1.0,
     "reasoning": "explanation of current state",
     "result": "the final result/answer to present to the user (if complete)",
     "next_action": "what to do next (if continue)",
     "question": "question for user (if need_input)"
 }}
 
-IMPORTANT: If status is 'complete', you MUST include a 'result' field with the actual final answer/output.""",
+Confidence scoring guide:
+- 1.0: Completely certain the goal is fully accomplished with high quality
+- 0.8-0.9: Very confident, minor improvements possible but goal is met
+- 0.5-0.7: Partially done, important aspects may still need work
+- 0.2-0.4: Early progress, significant work remaining
+- 0.0-0.1: Just started or no meaningful progress
+
+The minimum confidence required to finish is {config.completion_threshold}.
+
+IMPORTANT: If status is 'complete', you MUST include a 'result' field with the actual final answer/output.
+IMPORTANT: Always include the 'confidence' field with an honest numeric score.""",
         }
     ]
 
@@ -358,17 +379,39 @@ IMPORTANT: If status is 'complete', you MUST include a 'result' field with the a
             elif "```" in content:
                 content = content.split("```")[1].split("```")[0].strip()
 
-            return json.loads(content)
+            assessment = json.loads(content)
+
+            # Ensure confidence is present and valid
+            confidence = float(assessment.get("confidence", 0.0))
+            assessment["confidence"] = max(0.0, min(1.0, confidence))
+
+            # If the LLM says complete but confidence is below threshold,
+            # override to continue so the agent keeps improving
+            if assessment["status"] == "complete" and assessment["confidence"] < config.completion_threshold:
+                logger.info(
+                    f"Confidence {assessment['confidence']:.0%} below threshold "
+                    f"{config.completion_threshold:.0%}, continuing"
+                )
+                assessment["status"] = "continue"
+                assessment["next_action"] = (
+                    f"Confidence is {assessment['confidence']:.0%} but threshold is "
+                    f"{config.completion_threshold:.0%}. Review the work done so far and "
+                    f"improve the solution quality before finishing."
+                )
+
+            return assessment
     except Exception as e:
         logger.error(f"Assessment failed: {e}")
         return {
             "status": "continue",
+            "confidence": 0.0,
             "reasoning": "Assessment failed, continuing with task",
             "next_action": "Continue working on the goal",
         }
 
     return {
         "status": "continue",
+        "confidence": 0.0,
         "reasoning": "No clear assessment, continuing",
         "next_action": "Continue working on the goal",
     }
@@ -395,7 +438,10 @@ def agent_loop(
     config = config or AgentConfig.from_env()
     callbacks = callbacks or AgentCallbacks()
 
-    logger.info(f"Starting agent loop with max {config.max_iterations} iterations")
+    logger.info(
+        f"Starting agent loop: max_iterations={config.max_iterations}, "
+        f"completion_threshold={config.completion_threshold:.0%}"
+    )
 
     tools, commands = load_commands(agent_dir, config)
     cmd_map = {cmd["name"]: cmd for cmd in commands}
@@ -465,10 +511,14 @@ CRITICAL - Working with data:
                 logger.info("No tool calls, assessing completion")
                 assessment = assess_completion(messages, goal, tools, config)
 
-                callbacks.on_thinking(f"Assessment: {assessment['reasoning']}")
+                confidence = assessment.get("confidence", 0.0)
+                callbacks.on_thinking(
+                    f"Assessment: {assessment['reasoning']} "
+                    f"(confidence: {confidence:.0%}, threshold: {config.completion_threshold:.0%})"
+                )
 
                 if assessment["status"] == "complete":
-                    logger.info("Task completed successfully")
+                    logger.info(f"Task completed (confidence: {confidence:.0%})")
                     return assessment.get("result", assessment["reasoning"])
 
                 elif assessment["status"] == "need_input":

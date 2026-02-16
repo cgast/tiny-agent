@@ -284,6 +284,8 @@ class InteractiveSession:
         print("╰─────────────────────────────────────────────────╯", file=sys.stderr)
         print(f"  Model: {self.config.llm_provider}/{self.config.llm_model}", file=sys.stderr)
         print(f"  Tools: {len(self.commands)} loaded", file=sys.stderr)
+        print(f"  Max Iterations: {self.config.max_iterations}", file=sys.stderr)
+        print(f"  Completion Threshold: {self.config.completion_threshold:.0%}", file=sys.stderr)
         print(file=sys.stderr)
 
     def cmd_help(self, args: str) -> str:
@@ -409,6 +411,8 @@ Tips:
 Session Status:
   Model: {self.config.llm_provider}/{self.config.llm_model}
   {self.token_tracker.get_summary()}
+  Max Iterations: {self.config.max_iterations}
+  Completion Threshold: {self.config.completion_threshold:.0%}
   History: {len(self.conversation_history)} messages
   Undoable changes: {len(self.undo_manager.changes)}
     {changes_str}
@@ -641,6 +645,7 @@ def main():
         print(f"  LLM Provider: {config.llm_provider}", file=sys.stderr)
         print(f"  LLM Model: {config.llm_model}", file=sys.stderr)
         print(f"  Max Iterations: {config.max_iterations}", file=sys.stderr)
+        print(f"  Completion Threshold: {config.completion_threshold:.0%}", file=sys.stderr)
         print(f"  Verbosity: {VERBOSITY}", file=sys.stderr)
         sys.exit(0)
 
