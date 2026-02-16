@@ -21,11 +21,14 @@ RUN useradd -m -u 1000 agent && \
 WORKDIR /workspace
 
 # Copy agent files
+COPY --chown=agent:agent agent_core.py /home/agent/
+COPY --chown=agent:agent agent_cli.py /home/agent/
+COPY --chown=agent:agent agent_api.py /home/agent/
 COPY --chown=agent:agent agent.py /home/agent/
 COPY --chown=agent:agent commands.json /home/agent/.agent/
 
-# Install Python dependencies
-RUN pip install --no-cache-dir openai anthropic
+# Install Python dependencies (including Flask for agent_api.py)
+RUN pip install --no-cache-dir openai anthropic flask
 
 # Switch to non-root user
 USER agent
@@ -34,11 +37,14 @@ USER agent
 ENV PYTHONUNBUFFERED=1
 ENV HOME=/home/agent
 
-# Make agent executable
-RUN chmod +x /home/agent/agent.py
+# Make agent files executable
+RUN chmod +x /home/agent/*.py
 
-# Entry point
-ENTRYPOINT ["python", "/home/agent/agent.py"]
+# Expose Flask API port
+EXPOSE 5000
 
-# Default command (shows usage)
-CMD ["--help"]
+# Entry point - run agent-api.py for web use
+ENTRYPOINT ["python", "/home/agent/agent_api.py"]
+
+# Default command (none needed for API server)
+CMD []
