@@ -16,6 +16,10 @@ from typing import Optional, Dict
 from flask import Flask, request, Response, jsonify
 
 from agent_core import AgentConfig, AgentCallbacks, agent_loop
+from output_format import (
+    plain_goal, plain_thinking, plain_tool_call, plain_tool_result,
+    plain_error,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -82,16 +86,16 @@ def create_api_callbacks(session_id: str, auto_respond: bool = False) -> AgentCa
 
     def on_thinking(content: str):
         """Send agent thinking"""
-        send_output(f"💭 Agent: {content}\n")
+        send_output(f"{plain_thinking(content)}\n")
 
     def on_tool_call(name: str, args: dict):
         """Send tool execution info"""
-        send_output(f"🔧 Executing: {name}({args})\n")
+        send_output(f"{plain_tool_call(name, args)}\n")
 
     def on_tool_result(result: str):
         """Send tool result (truncated for display)"""
         display = result[:200] + "..." if len(result) > 200 else result
-        send_output(f"📋 Result: {display}\n")
+        send_output(f"{plain_tool_result(display)}\n")
 
     def on_need_input(question: str) -> str:
         """Request input from user via API"""
@@ -111,7 +115,7 @@ def create_api_callbacks(session_id: str, auto_respond: bool = False) -> AgentCa
 
     def on_error(error: str):
         """Send error"""
-        send_output(f"❌ Error: {error}\n", "error")
+        send_output(f"{plain_error(error)}\n", "error")
 
     return AgentCallbacks(
         on_iteration=on_iteration,
@@ -136,7 +140,7 @@ def run_agent_thread(session_id: str, prompt: str, auto_respond: bool = False) -
 
     try:
         # Send initial goal
-        output_queue.put({"type": "output", "content": f"🎯 Goal: {prompt}\n"})
+        output_queue.put({"type": "output", "content": f"{plain_goal(prompt)}\n"})
 
         # Find agent directory
         current_dir = Path.cwd()

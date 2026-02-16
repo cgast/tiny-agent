@@ -10,6 +10,10 @@ import logging
 import shlex
 from pathlib import Path
 from typing import Optional
+from output_format import (
+    fmt_goal, fmt_thinking, fmt_tool_call, fmt_tool_result, fmt_input,
+    fmt_error, fmt_warning, fmt_next, fmt_flow,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -239,7 +243,7 @@ def execute_command(cmd_config: dict, args: dict) -> str:
 
 def ask_user(question: str) -> str:
     """Ask user a question and get response"""
-    print(f"\n❓ Agent needs input: {question}", file=sys.stderr)
+    print(fmt_input(f"Agent needs input: {question}"), file=sys.stderr)
     print("Your response (or /quit to exit): ", end="", file=sys.stderr)
     try:
         response = input().strip()
@@ -414,7 +418,7 @@ find patterns, etc. without needing additional parsing tools."""
 
             # Display agent's thinking/response
             if response.content:
-                print_verbose(f"\n💭 Agent: {response.content}")
+                print_verbose(f"\n{fmt_thinking(response.content)}")
 
             # If no tool calls, assess what to do next
             if not response.tool_calls:
@@ -422,10 +426,9 @@ find patterns, etc. without needing additional parsing tools."""
                 assessment = assess_completion(messages, goal, tools)
 
                 confidence = assessment.get("confidence", 0.0)
-                print_verbose(
-                    f"\n🔍 Assessment: {assessment['reasoning']} "
-                    f"(confidence: {confidence:.0%}, threshold: {threshold:.0%})"
-                )
+                reasoning = assessment['reasoning']
+                msg = f"Assessment: {reasoning} (confidence: {confidence:.0%}, threshold: {threshold:.0%})"
+                print_verbose(f"\n{fmt_thinking(msg)}")
 
                 if assessment['status'] == 'complete':
                     logger.info(f"Task completed (confidence: {confidence:.0%})")
@@ -446,7 +449,7 @@ find patterns, etc. without needing additional parsing tools."""
                 elif assessment['status'] == 'continue':
                     # Agent knows what to do next, continue autonomously
                     logger.info(f"Continuing: {assessment.get('next_action', 'Working on goal')}")
-                    print_normal(f"→ Next: {assessment.get('next_action', 'Continuing...')}")
+                    print_normal(fmt_next(assessment.get('next_action', 'Continuing...')))
                     # Add next action as user message to guide the agent
                     messages.append({
                         "role": "user",
@@ -472,7 +475,7 @@ find patterns, etc. without needing additional parsing tools."""
                         })
                         continue
 
-                    print_normal(f"🔧 Executing: {function_name}({arguments})")
+                    print_normal(fmt_tool_call(function_name, arguments))
                     logger.info(f"Executing tool: {function_name}")
 
                     # Execute CLI command
@@ -480,7 +483,7 @@ find patterns, etc. without needing additional parsing tools."""
                         result = execute_command(cmd_map[function_name], arguments)
                         # Show truncated result in console
                         display_result = result[:200] + "..." if len(result) > 200 else result
-                        print_normal(f"📋 Result: {display_result}")
+                        print_normal(fmt_tool_result(display_result))
                     else:
                         logger.warning(f"Unknown command requested: {function_name}")
                         result = f"Unknown command: {function_name}"
@@ -501,7 +504,7 @@ find patterns, etc. without needing additional parsing tools."""
             return f"Error: {str(e)}"
 
     logger.warning(f"Max iterations ({max_iterations}) reached")
-    return f"⚠️  Max iterations ({max_iterations}) reached. Task may be incomplete."
+    return f"(!) Max iterations ({max_iterations}) reached. Task may be incomplete."
 
 
 def main():
@@ -530,12 +533,12 @@ def main():
     provider = CONFIG["llm_provider"]
     if provider == "openai" and not os.getenv("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY environment variable not set")
-        print("❌ Error: OPENAI_API_KEY environment variable not set", file=sys.stderr)
+        print(fmt_error("OPENAI_API_KEY environment variable not set"), file=sys.stderr)
         print("Please set it in your .env file or environment", file=sys.stderr)
         sys.exit(1)
     elif provider == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
         logger.error("ANTHROPIC_API_KEY environment variable not set")
-        print("❌ Error: ANTHROPIC_API_KEY environment variable not set", file=sys.stderr)
+        print(fmt_error("ANTHROPIC_API_KEY environment variable not set"), file=sys.stderr)
         print("Please set it in your .env file or environment", file=sys.stderr)
         sys.exit(1)
 
@@ -549,12 +552,12 @@ def main():
         agent_dir = Path.home() / ".agent"
     else:
         logger.error("commands.json not found in current directory or ~/.agent")
-        print("❌ Error: commands.json not found", file=sys.stderr)
+        print(fmt_error("commands.json not found"), file=sys.stderr)
         print("Run from project directory or create ~/.agent/commands.json", file=sys.stderr)
         sys.exit(1)
 
     logger.info(f"Starting agent with goal: {goal}")
-    print_normal(f"🎯 Goal: {goal}")
+    print_normal(fmt_goal(goal))
 
     try:
         result = agent_loop(goal, agent_dir)
@@ -562,11 +565,11 @@ def main():
         print_result(result)
     except KeyboardInterrupt:
         logger.info("Agent interrupted by user")
-        print("\n\n⚠️  Agent interrupted by user", file=sys.stderr)
+        print(f"\n\n{fmt_warning('Agent interrupted by user')}", file=sys.stderr)
         sys.exit(130)
     except Exception as e:
         logger.error(f"Agent failed with error: {e}", exc_info=True)
-        print(f"\n\n❌ Error: {str(e)}", file=sys.stderr)
+        print(f"\n\n{fmt_error(str(e))}", file=sys.stderr)
         sys.exit(1)
 
 

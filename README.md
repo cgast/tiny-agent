@@ -52,6 +52,7 @@ export ANTHROPIC_API_KEY=sk-ant-your-key-here
 - [Commands and Tools](#-commands-and-tools)
 - [Templates and Examples](#-templates-and-examples)
 - [Configuration](#-configuration)
+  - [Loop Length and Termination](#loop-length-and-termination)
 - [Unix-Style I/O](#-unix-style-io)
 - [Security](#-security)
 - [Development](#-development)
@@ -513,6 +514,54 @@ AGENT_VERBOSITY=normal     # quiet, normal, verbose, debug
 - `debug` - All logs and details
 
 **Note:** stdout always contains only the final result, regardless of verbosity. Progress goes to stderr.
+
+### Loop Length and Termination
+
+The agent runs in an iterative loop: call the LLM, execute any requested tools, then assess whether the goal is complete. Two settings control when the loop stops:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `MAX_ITERATIONS` | 50 | Hard upper limit on loop iterations. The agent stops unconditionally after this many iterations, even if the task is incomplete. |
+| `COMPLETION_THRESHOLD` | 0.8 | Minimum confidence score (0.0–1.0) the LLM must report before the agent will accept a "complete" status. |
+
+**How completion assessment works:**
+
+After each iteration where the LLM returns no tool calls, the agent asks the LLM to assess the current state. The assessment includes a **confidence score** from 0.0 to 1.0:
+
+| Confidence | Meaning |
+|------------|---------|
+| 1.0 | Completely certain the goal is fully accomplished |
+| 0.8–0.9 | Very confident, minor improvements possible but goal is met |
+| 0.5–0.7 | Partially done, important aspects may still need work |
+| 0.2–0.4 | Early progress, significant work remaining |
+| 0.0–0.1 | Just started or no meaningful progress |
+
+If the LLM reports "complete" but its confidence is **below** the threshold, the agent overrides the status to "continue" and keeps iterating, prompting the LLM to improve the solution quality.
+
+**Tuning the threshold:**
+
+- **Higher values** (e.g. 0.9) — the agent works longer, producing more thorough results at the cost of more LLM calls
+- **Lower values** (e.g. 0.5) — the agent finishes sooner, useful for quick tasks where perfection isn't needed
+- **0.0** — effectively disables the threshold; the agent finishes as soon as the LLM says "complete"
+
+```bash
+# Example: strict quality threshold with generous iteration budget
+COMPLETION_THRESHOLD=0.95
+MAX_ITERATIONS=100
+
+# Example: fast mode for simple tasks
+COMPLETION_THRESHOLD=0.5
+MAX_ITERATIONS=20
+```
+
+Programmatic usage:
+
+```python
+config = AgentConfig(
+    max_iterations=100,
+    completion_threshold=0.95,  # Agent keeps going until very confident
+)
+```
 
 ## 🔄 Unix-Style I/O
 

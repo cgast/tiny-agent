@@ -13,10 +13,18 @@ import logging
 import readline
 import atexit
 import shutil
+import threading
+import itertools
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from agent_core import AgentConfig, AgentCallbacks, agent_loop, load_commands
+from output_format import (
+    fmt_goal, fmt_thinking, fmt_tool_call, fmt_tool_result, fmt_input,
+    fmt_error, fmt_warning, fmt_done, fmt_result, fmt_stats, fmt_iteration,
+    fmt_ok, fmt_fail, fmt_banner, fmt_flow,
+    DIM, RESET, FLOW,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -39,7 +47,7 @@ logger.setLevel(verbosity_to_log_level.get(VERBOSITY, logging.INFO))
 
 
 # Output helpers following Unix conventions
-# Informational output → stderr, results → stdout
+# Informational output -> stderr, results -> stdout
 def print_normal(msg: str):
     """Print to stderr in normal, verbose, debug modes"""
     if VERBOSITY in ["normal", "verbose", "debug"]:
@@ -61,6 +69,48 @@ def print_debug(msg: str):
 def print_result(msg: str):
     """Print final result to stdout (for piping/redirection)"""
     print(msg, file=sys.stdout)
+
+
+# =============================================================================
+# Spinner - animated feedback during LLM calls
+# =============================================================================
+
+class Spinner:
+    """Animated spinner for terminal feedback during LLM calls."""
+
+    FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+    def __init__(self):
+        self._thread = None
+        self._stop_event = threading.Event()
+
+    def start(self):
+        """Start the spinner animation."""
+        if VERBOSITY == "quiet":
+            return
+        if not (hasattr(sys.stderr, "isatty") and sys.stderr.isatty()):
+            return
+        self._stop_event.clear()
+        self._thread = threading.Thread(target=self._animate, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        """Stop the spinner and clear the line."""
+        self._stop_event.set()
+        if self._thread:
+            self._thread.join(timeout=1)
+            self._thread = None
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+
+    def _animate(self):
+        """Run the animation loop."""
+        for frame in itertools.cycle(self.FRAMES):
+            if self._stop_event.is_set():
+                break
+            sys.stderr.write(f"\r{DIM}{FLOW}  {frame} Thinking...{RESET}")
+            sys.stderr.flush()
+            self._stop_event.wait(0.08)
 
 
 # =============================================================================
@@ -278,14 +328,13 @@ class InteractiveSession:
 
     def print_banner(self):
         """Print welcome banner"""
-        print("╭─────────────────────────────────────────────────╮", file=sys.stderr)
-        print("│           Tiny Agent - Interactive Mode         │", file=sys.stderr)
-        print("│        Type /help for available commands        │", file=sys.stderr)
-        print("╰─────────────────────────────────────────────────╯", file=sys.stderr)
-        print(f"  Model: {self.config.llm_provider}/{self.config.llm_model}", file=sys.stderr)
-        print(f"  Tools: {len(self.commands)} loaded", file=sys.stderr)
-        print(f"  Max Iterations: {self.config.max_iterations}", file=sys.stderr)
-        print(f"  Completion Threshold: {self.config.completion_threshold:.0%}", file=sys.stderr)
+        banner = fmt_banner(
+            model=f"{self.config.llm_provider}/{self.config.llm_model}",
+            tools_count=len(self.commands),
+            max_iter=self.config.max_iterations,
+            threshold=f"{self.config.completion_threshold:.0%}",
+        )
+        print(banner, file=sys.stderr)
         print(file=sys.stderr)
 
     def cmd_help(self, args: str) -> str:
@@ -305,10 +354,10 @@ Available Commands:
   /quit, /exit       Exit interactive mode
 
 Tips:
-  • Use ↑/↓ arrows to navigate command history
-  • Use Ctrl+R to search history
-  • Tab completes slash commands
-  • Enter a task description to run the agent
+  - Use Up/Down arrows to navigate command history
+  - Use Ctrl+R to search history
+  - Tab completes slash commands
+  - Enter a task description to run the agent
 """
 
     def cmd_tools(self, args: str) -> str:
@@ -350,13 +399,15 @@ Tips:
             if len(output) > 2000:
                 output = output[:2000] + "\n... (truncated)"
 
-            status = "✓" if result.returncode == 0 else f"✗ (exit {result.returncode})"
-            return f"{status} {args}\n{output}"
+            if result.returncode == 0:
+                return fmt_ok(f"{args}\n{output}")
+            else:
+                return fmt_fail(f"(exit {result.returncode}) {args}\n{output}")
 
         except subprocess.TimeoutExpired:
-            return f"✗ Command timed out after 30s: {args}"
+            return fmt_fail(f"Command timed out after 30s: {args}")
         except Exception as e:
-            return f"✗ Error running command: {e}"
+            return fmt_fail(f"Error running command: {e}")
 
     def cmd_clear(self, args: str) -> str:
         """Clear conversation history"""
@@ -469,7 +520,7 @@ Session Status:
 
     def run_task(self, goal: str):
         """Run the agent on a task"""
-        print_normal(f"🎯 Goal: {goal}")
+        print_normal(fmt_goal(goal))
 
         # Track files that might be modified
         # For simplicity, watch common files in current directory
@@ -484,16 +535,17 @@ Session Status:
         try:
             result = agent_loop(goal, self.agent_dir, self.config, callbacks)
 
-            # Show result
+            # Show result with clear separator
+            print_normal(fmt_result())
             print_result(result)
 
             # Show token usage
-            print_normal(f"\n📊 {self.token_tracker.get_summary()}")
+            print_normal(f"\n{fmt_stats(self.token_tracker.get_summary())}")
 
         except KeyboardInterrupt:
-            print("\n⚠️  Task interrupted", file=sys.stderr)
+            print(f"\n{fmt_warning('Task interrupted')}", file=sys.stderr)
         except Exception as e:
-            print(f"\n❌ Error: {e}", file=sys.stderr)
+            print(f"\n{fmt_error(str(e))}", file=sys.stderr)
         finally:
             self.undo_manager.stop_watching()
 
@@ -541,32 +593,51 @@ def create_cli_callbacks_with_tracking(token_tracker: TokenTracker) -> AgentCall
         on_need_input=base_callbacks.on_need_input,
         on_error=base_callbacks.on_error,
         on_token_usage=on_token_usage,
+        on_llm_start=base_callbacks.on_llm_start,
+        on_llm_end=base_callbacks.on_llm_end,
     )
 
 
 def create_cli_callbacks() -> AgentCallbacks:
     """Create callbacks that use CLI I/O (stdin/stdout/stderr)"""
 
+    spinner = Spinner()
+
     def on_iteration(current: int, max_iterations: int):
         """Print iteration info"""
-        print_debug(f"\n--- Iteration {current}/{max_iterations} ---")
+        print_debug(fmt_iteration(current, max_iterations))
 
     def on_thinking(content: str):
         """Print agent's thinking"""
-        print_verbose(f"\n💭 Agent: {content}")
+        print_verbose(f"\n{fmt_thinking(content)}")
 
     def on_tool_call(name: str, args: dict):
         """Print tool execution"""
-        print_normal(f"🔧 Executing: {name}({args})")
+        print_normal(fmt_tool_call(name, args))
 
     def on_tool_result(result: str):
-        """Print tool result (truncated)"""
-        display_result = result[:200] + "..." if len(result) > 200 else result
-        print_normal(f"📋 Result: {display_result}")
+        """Print tool result (smart summary for large/binary content)"""
+        stripped = result.lstrip()
+        char_count = f"{len(result):,}"
+
+        # Detect HTML content - show summary instead of raw markup
+        if stripped[:15].lower().startswith(("<!doctype", "<html")):
+            display_result = f"received HTML response ({char_count} chars)"
+        # Detect JSON content
+        elif stripped[:1] in ("{", "[") and len(result) > 200:
+            display_result = f"received JSON response ({char_count} chars)"
+        # Long plain text - show first meaningful line
+        elif len(result) > 300:
+            first_line = result.strip().split("\n")[0][:120]
+            display_result = f"{first_line} ... ({char_count} chars)"
+        else:
+            display_result = result
+
+        print_normal(fmt_tool_result(display_result))
 
     def on_need_input(question: str) -> str:
         """Ask user for input via CLI"""
-        print(f"\n❓ Agent needs input: {question}", file=sys.stderr)
+        print(fmt_input(f"Agent needs input: {question}"), file=sys.stderr)
         print("Your response (or /quit to exit): ", end="", file=sys.stderr)
         try:
             response = input().strip()
@@ -577,7 +648,7 @@ def create_cli_callbacks() -> AgentCallbacks:
 
     def on_error(error: str):
         """Print error"""
-        print_normal(f"❌ Error: {error}")
+        print_normal(fmt_error(error))
 
     return AgentCallbacks(
         on_iteration=on_iteration,
@@ -586,6 +657,8 @@ def create_cli_callbacks() -> AgentCallbacks:
         on_tool_result=on_tool_result,
         on_need_input=on_need_input,
         on_error=on_error,
+        on_llm_start=spinner.start,
+        on_llm_end=spinner.stop,
     )
 
 
@@ -661,12 +734,12 @@ def main():
     # Validate API key for configured provider
     if config.llm_provider == "openai" and not os.getenv("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY environment variable not set")
-        print("❌ Error: OPENAI_API_KEY environment variable not set", file=sys.stderr)
+        print(fmt_error("OPENAI_API_KEY environment variable not set"), file=sys.stderr)
         print("Please set it in your .env file or environment", file=sys.stderr)
         sys.exit(1)
     elif config.llm_provider == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
         logger.error("ANTHROPIC_API_KEY environment variable not set")
-        print("❌ Error: ANTHROPIC_API_KEY environment variable not set", file=sys.stderr)
+        print(fmt_error("ANTHROPIC_API_KEY environment variable not set"), file=sys.stderr)
         print("Please set it in your .env file or environment", file=sys.stderr)
         sys.exit(1)
 
@@ -675,7 +748,7 @@ def main():
         agent_dir = find_agent_dir()
     except RuntimeError as e:
         logger.error(str(e))
-        print(f"❌ {e}", file=sys.stderr)
+        print(fmt_error(str(e)), file=sys.stderr)
         sys.exit(1)
 
     # Interactive mode
@@ -685,13 +758,13 @@ def main():
             session.run()
         except Exception as e:
             logger.error(f"Interactive session failed: {e}", exc_info=True)
-            print(f"\n❌ Error: {str(e)}", file=sys.stderr)
+            print(f"\n{fmt_error(str(e))}", file=sys.stderr)
             sys.exit(1)
         return
 
     # Single task mode
     logger.info(f"Starting agent with goal: {goal}")
-    print_normal(f"🎯 Goal: {goal}")
+    print_normal(fmt_goal(goal))
 
     # Create CLI callbacks
     callbacks = create_cli_callbacks()
@@ -700,17 +773,18 @@ def main():
     try:
         result = agent_loop(goal, agent_dir, config, callbacks)
 
-        # Output final result to stdout (clean, pipeable)
+        # Show result separator on stderr, then clean result on stdout
+        print_normal(fmt_result())
         print_result(result)
 
     except KeyboardInterrupt:
         logger.info("Agent interrupted by user")
-        print("\n\n⚠️  Agent interrupted by user", file=sys.stderr)
+        print(f"\n\n{fmt_warning('Agent interrupted by user')}", file=sys.stderr)
         sys.exit(130)
 
     except Exception as e:
         logger.error(f"Agent failed with error: {e}", exc_info=True)
-        print(f"\n\n❌ Error: {str(e)}", file=sys.stderr)
+        print(f"\n\n{fmt_error(str(e))}", file=sys.stderr)
         sys.exit(1)
 
 

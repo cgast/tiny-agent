@@ -11,6 +11,7 @@ import json
 import time
 import sys
 from typing import List, Dict
+from output_format import fmt_ok, fmt_fail, fmt_error, fmt_info
 
 API_URL = "http://localhost:5000"
 
@@ -22,23 +23,23 @@ class TestResult:
         self.message = message
 
     def __str__(self):
-        status = "✅ PASS" if self.passed else "❌ FAIL"
+        status = fmt_ok("PASS") if self.passed else fmt_fail("FAIL")
         msg = f": {self.message}" if self.message else ""
         return f"{status} - {self.name}{msg}"
 
 
 def run_test(test_name: str, test_func) -> TestResult:
     """Run a single test and return the result"""
-    print(f"\n🧪 Running: {test_name}")
+    print(fmt_info(f"Running: {test_name}"))
     try:
         result = test_func()
-        print(f"   ✅ Passed")
+        print(f"   {fmt_ok('Passed')}")
         return TestResult(test_name, True)
     except AssertionError as e:
-        print(f"   ❌ Failed: {e}")
+        print(f"   {fmt_fail(f'Failed: {e}')}")
         return TestResult(test_name, False, str(e))
     except Exception as e:
-        print(f"   ❌ Error: {e}")
+        print(f"   {fmt_fail(f'Error: {e}')}")
         return TestResult(test_name, False, f"Error: {e}")
 
 
@@ -218,16 +219,16 @@ def main():
     print("=" * 70)
 
     # Check if server is running
-    print("\n🔍 Checking if API server is running...")
+    print(fmt_info("Checking if API server is running..."))
     if not check_server_running():
-        print(f"\n❌ ERROR: API server is not running at {API_URL}")
+        print(f"\n{fmt_error(f'API server is not running at {API_URL}')}")
         print("\nPlease start the server first:")
         print("  python agent-api.py")
         print("\nThen run the tests again:")
         print("  python test_agent_api.py")
         sys.exit(1)
 
-    print(f"✅ Server is running at {API_URL}")
+    print(fmt_ok(f"Server is running at {API_URL}"))
 
     # Define all tests
     tests = [

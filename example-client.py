@@ -11,6 +11,9 @@ import json
 import sys
 import uuid
 from typing import Iterator
+from output_format import (
+    fmt_info, fmt_error, fmt_done, fmt_input, fmt_ok, fmt_fail,
+)
 
 API_URL = "http://localhost:5000"
 
@@ -29,7 +32,7 @@ def run_agent_auto(prompt: str) -> None:
     """
     session_id = f"auto-{uuid.uuid4().hex[:8]}"
 
-    print(f"🚀 Starting agent in auto-respond mode")
+    print(fmt_info("Starting agent in auto-respond mode"))
     print(f"   Session ID: {session_id}")
     print(f"   Prompt: {prompt}")
     print("-" * 60)
@@ -45,7 +48,7 @@ def run_agent_auto(prompt: str) -> None:
     )
 
     if response.status_code != 200:
-        print(f"❌ Error: {response.status_code}")
+        print(fmt_error(f"{response.status_code}"))
         print(response.text)
         return
 
@@ -71,13 +74,13 @@ def run_agent_auto(prompt: str) -> None:
 
         elif event['type'] == 'complete':
             print("\n" + "=" * 60)
-            print(f"✅ Complete: {event['content']}")
+            print(fmt_done(event['content']))
             print("=" * 60)
             break
 
         elif event['type'] == 'error':
             print("\n" + "=" * 60)
-            print(f"❌ Error: {event['content']}")
+            print(fmt_error(event['content']))
             print("=" * 60)
             break
 
@@ -89,7 +92,7 @@ def run_agent_interactive(prompt: str) -> None:
     """
     session_id = f"interactive-{uuid.uuid4().hex[:8]}"
 
-    print(f"🚀 Starting agent in interactive mode")
+    print(fmt_info("Starting agent in interactive mode"))
     print(f"   Session ID: {session_id}")
     print(f"   Prompt: {prompt}")
     print("-" * 60)
@@ -106,7 +109,7 @@ def run_agent_interactive(prompt: str) -> None:
     )
 
     if response.status_code != 200:
-        print(f"❌ Error: {response.status_code}")
+        print(fmt_error(f"{response.status_code}"))
         print(response.text)
         return
 
@@ -128,7 +131,7 @@ def run_agent_interactive(prompt: str) -> None:
         elif event['type'] == 'question':
             # Agent is asking a question - get user input
             print(f"\n{'=' * 60}")
-            print(f"❓ Agent Question: {event['content']}")
+            print(fmt_input(f"Agent Question: {event['content']}"))
             print(f"{'=' * 60}")
 
             # Get user response
@@ -147,21 +150,21 @@ def run_agent_interactive(prompt: str) -> None:
             )
 
             if resp.status_code != 200:
-                print(f"❌ Failed to send response: {resp.json()}")
+                print(fmt_fail(f"Failed to send response: {resp.json()}"))
                 break
 
-            print(f"✓ Response sent: {user_response}")
+            print(fmt_ok(f"Response sent: {user_response}"))
             print("-" * 60)
 
         elif event['type'] == 'complete':
             print("\n" + "=" * 60)
-            print(f"✅ Complete: {event['content']}")
+            print(fmt_done(event['content']))
             print("=" * 60)
             break
 
         elif event['type'] == 'error':
             print("\n" + "=" * 60)
-            print(f"❌ Error: {event['content']}")
+            print(fmt_error(event['content']))
             print("=" * 60)
             break
 
@@ -172,19 +175,19 @@ def check_health() -> bool:
         response = requests.get(f"{API_URL}/health", timeout=2)
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Server is healthy")
+            print(fmt_ok("Server is healthy"))
             print(f"   Active sessions: {data.get('active_sessions', 0)}")
             return True
         else:
-            print(f"❌ Server returned status {response.status_code}")
+            print(fmt_fail(f"Server returned status {response.status_code}"))
             return False
     except requests.exceptions.ConnectionError:
-        print(f"❌ Cannot connect to server at {API_URL}")
+        print(fmt_error(f"Cannot connect to server at {API_URL}"))
         print(f"   Make sure agent-api.py is running:")
         print(f"   python agent-api.py")
         return False
     except Exception as e:
-        print(f"❌ Error checking health: {e}")
+        print(fmt_error(f"Error checking health: {e}"))
         return False
 
 

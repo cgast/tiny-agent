@@ -75,6 +75,8 @@ class AgentCallbacks:
         on_need_input: Optional[Callable[[str], str]] = None,
         on_error: Optional[Callable[[str], None]] = None,
         on_token_usage: Optional[Callable[[int, int], None]] = None,
+        on_llm_start: Optional[Callable[[], None]] = None,
+        on_llm_end: Optional[Callable[[], None]] = None,
     ):
         """
         Initialize callbacks for agent events.
@@ -87,6 +89,8 @@ class AgentCallbacks:
             on_need_input: Called when agent needs user input (question) -> response
             on_error: Called when an error occurs (error_msg)
             on_token_usage: Called with token counts (input_tokens, output_tokens)
+            on_llm_start: Called before an LLM request starts
+            on_llm_end: Called after an LLM request completes
         """
         self.on_iteration = on_iteration or (lambda i, m: None)
         self.on_thinking = on_thinking or (lambda c: None)
@@ -95,6 +99,8 @@ class AgentCallbacks:
         self.on_need_input = on_need_input or (lambda q: "/quit")
         self.on_error = on_error or (lambda e: None)
         self.on_token_usage = on_token_usage or (lambda i, o: None)
+        self.on_llm_start = on_llm_start or (lambda: None)
+        self.on_llm_end = on_llm_end or (lambda: None)
 
 
 class LLMResponse:
@@ -295,7 +301,7 @@ def execute_command(cmd_config: Dict, args: Dict, config: AgentConfig) -> str:
         output = result.stdout if result.returncode == 0 else result.stderr
 
         if len(output) > config.max_output_size:
-            logger.warning(
+            logger.debug(
                 f"Output truncated from {len(output)} to {config.max_output_size} chars"
             )
             output = (
@@ -484,7 +490,11 @@ CRITICAL - Working with data:
 
         try:
             # Call LLM
-            response = call_llm(messages, tools, config)
+            callbacks.on_llm_start()
+            try:
+                response = call_llm(messages, tools, config)
+            finally:
+                callbacks.on_llm_end()
 
             if response is None:
                 logger.error("LLM returned None, aborting")
@@ -509,7 +519,11 @@ CRITICAL - Working with data:
             # If no tool calls, assess what to do next
             if not response.tool_calls:
                 logger.info("No tool calls, assessing completion")
-                assessment = assess_completion(messages, goal, tools, config)
+                callbacks.on_llm_start()
+                try:
+                    assessment = assess_completion(messages, goal, tools, config)
+                finally:
+                    callbacks.on_llm_end()
 
                 confidence = assessment.get("confidence", 0.0)
                 callbacks.on_thinking(
@@ -596,4 +610,4 @@ CRITICAL - Working with data:
             return f"Error: {str(e)}"
 
     logger.warning(f"Max iterations ({config.max_iterations}) reached")
-    return f"⚠️  Max iterations ({config.max_iterations}) reached. Task may be incomplete."
+    return f"(!) Max iterations ({config.max_iterations}) reached. Task may be incomplete."
