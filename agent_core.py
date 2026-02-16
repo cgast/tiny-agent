@@ -11,10 +11,18 @@ import json
 import subprocess
 import time
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Callable, Dict, Any, List
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AgentResult:
+    """Result from agent_loop with confidence metadata."""
+    result: str
+    confidence: Optional[float] = None
 
 
 class AgentConfig:
@@ -428,7 +436,7 @@ def agent_loop(
     agent_dir: Path,
     config: Optional[AgentConfig] = None,
     callbacks: Optional[AgentCallbacks] = None,
-) -> str:
+) -> AgentResult:
     """
     Main autonomous agent loop - pure logic without I/O dependencies.
 
@@ -439,7 +447,7 @@ def agent_loop(
         callbacks: Callbacks for events (uses no-op defaults if None)
 
     Returns:
-        Final result string
+        AgentResult with result string and confidence score
     """
     config = config or AgentConfig.from_env()
     callbacks = callbacks or AgentCallbacks()
@@ -498,7 +506,7 @@ CRITICAL - Working with data:
 
             if response is None:
                 logger.error("LLM returned None, aborting")
-                return "Error: LLM call failed after retries"
+                return AgentResult("Error: LLM call failed after retries")
 
             # Report token usage
             callbacks.on_token_usage(response.input_tokens, response.output_tokens)
@@ -533,7 +541,10 @@ CRITICAL - Working with data:
 
                 if assessment["status"] == "complete":
                     logger.info(f"Task completed (confidence: {confidence:.0%})")
-                    return assessment.get("result", assessment["reasoning"])
+                    return AgentResult(
+                        assessment.get("result", assessment["reasoning"]),
+                        confidence,
+                    )
 
                 elif assessment["status"] == "need_input":
                     # Agent needs user input
@@ -543,7 +554,7 @@ CRITICAL - Working with data:
 
                     if user_response == "/quit":
                         logger.info("User quit")
-                        return "User quit"
+                        return AgentResult("User quit")
 
                     messages.append({"role": "user", "content": user_response})
                     continue
@@ -603,11 +614,13 @@ CRITICAL - Working with data:
 
         except KeyboardInterrupt:
             logger.info("User interrupted execution")
-            return "User interrupted"
+            return AgentResult("User interrupted")
         except Exception as e:
             logger.error(f"Unexpected error in iteration {iteration}: {e}")
             callbacks.on_error(str(e))
-            return f"Error: {str(e)}"
+            return AgentResult(f"Error: {str(e)}")
 
     logger.warning(f"Max iterations ({config.max_iterations}) reached")
-    return f"(!) Max iterations ({config.max_iterations}) reached. Task may be incomplete."
+    return AgentResult(
+        f"(!) Max iterations ({config.max_iterations}) reached. Task may be incomplete."
+    )

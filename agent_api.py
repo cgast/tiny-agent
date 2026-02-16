@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Optional, Dict
 from flask import Flask, request, Response, jsonify
 
-from agent_core import AgentConfig, AgentCallbacks, agent_loop
+from agent_core import AgentConfig, AgentCallbacks, AgentResult, agent_loop
 from output_format import (
     plain_goal, plain_thinking, plain_tool_call, plain_tool_result,
     plain_error,
@@ -158,10 +158,14 @@ def run_agent_thread(session_id: str, prompt: str, auto_respond: bool = False) -
         callbacks = create_api_callbacks(session_id, auto_respond)
 
         # Run agent
-        result = agent_loop(prompt, agent_dir, config, callbacks)
+        agent_result = agent_loop(prompt, agent_dir, config, callbacks)
 
-        # Send completion
-        output_queue.put({"type": "complete", "content": result})
+        # Send completion with confidence
+        output_queue.put({
+            "type": "complete",
+            "content": agent_result.result,
+            "confidence": agent_result.confidence,
+        })
 
         logger.info(f"Session {session_id}: Agent completed successfully")
 

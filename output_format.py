@@ -10,6 +10,7 @@ Disable with NO_COLOR=1, force with FORCE_COLOR=1.
 
 import os
 import sys
+from typing import Optional
 
 
 def _supports_color() -> bool:
@@ -95,7 +96,10 @@ def fmt_done(text: str) -> str:
     return f"{GREEN}{BOLD} {SYM_DONE} Done:{RESET} {GREEN}{text}{RESET}"
 
 
-def fmt_result() -> str:
+def fmt_result(confidence: Optional[float] = None) -> str:
+    if confidence is not None:
+        pct = f"{confidence:.0%}"
+        return f"\n{GREEN}{BOLD} {SYM_DONE} Result:{RESET} {DIM}(confidence: {pct}){RESET}"
     return f"\n{GREEN}{BOLD} {SYM_DONE} Result:{RESET}"
 
 

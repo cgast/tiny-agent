@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional
 from output_format import (
     fmt_goal, fmt_thinking, fmt_tool_call, fmt_tool_result, fmt_input,
-    fmt_error, fmt_warning, fmt_next, fmt_flow,
+    fmt_error, fmt_warning, fmt_next, fmt_flow, fmt_result,
 )
 
 # Configure logging
@@ -407,7 +407,7 @@ find patterns, etc. without needing additional parsing tools."""
 
             if response is None:
                 logger.error("LLM returned None, aborting")
-                return "Error: LLM call failed after retries"
+                return "Error: LLM call failed after retries", None
 
             # Add to messages
             messages.append({
@@ -432,8 +432,8 @@ find patterns, etc. without needing additional parsing tools."""
 
                 if assessment['status'] == 'complete':
                     logger.info(f"Task completed (confidence: {confidence:.0%})")
-                    # Return the actual result, fallback to reasoning if no result provided
-                    return assessment.get('result', assessment['reasoning'])
+                    # Return the actual result with confidence
+                    return assessment.get('result', assessment['reasoning']), confidence
 
                 elif assessment['status'] == 'need_input':
                     # Agent needs user input
@@ -441,7 +441,7 @@ find patterns, etc. without needing additional parsing tools."""
 
                     if user_response == "/quit":
                         logger.info("User quit")
-                        return "User quit"
+                        return "User quit", None
 
                     messages.append({"role": "user", "content": user_response})
                     continue
@@ -498,13 +498,13 @@ find patterns, etc. without needing additional parsing tools."""
 
         except KeyboardInterrupt:
             logger.info("User interrupted execution")
-            return "User interrupted"
+            return "User interrupted", None
         except Exception as e:
             logger.error(f"Unexpected error in iteration {iteration}: {e}")
-            return f"Error: {str(e)}"
+            return f"Error: {str(e)}", None
 
     logger.warning(f"Max iterations ({max_iterations}) reached")
-    return f"(!) Max iterations ({max_iterations}) reached. Task may be incomplete."
+    return f"(!) Max iterations ({max_iterations}) reached. Task may be incomplete.", None
 
 
 def main():
@@ -560,8 +560,9 @@ def main():
     print_normal(fmt_goal(goal))
 
     try:
-        result = agent_loop(goal, agent_dir)
+        result, confidence = agent_loop(goal, agent_dir)
         # Output final result to stdout (clean, pipeable)
+        print_normal(fmt_result(confidence))
         print_result(result)
     except KeyboardInterrupt:
         logger.info("Agent interrupted by user")

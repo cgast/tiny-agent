@@ -18,7 +18,7 @@ import itertools
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Any
-from agent_core import AgentConfig, AgentCallbacks, agent_loop, load_commands
+from agent_core import AgentConfig, AgentCallbacks, AgentResult, agent_loop, load_commands
 from output_format import (
     fmt_goal, fmt_thinking, fmt_tool_call, fmt_tool_result, fmt_input,
     fmt_error, fmt_warning, fmt_done, fmt_result, fmt_stats, fmt_iteration,
@@ -533,11 +533,11 @@ Session Status:
         callbacks = create_cli_callbacks_with_tracking(self.token_tracker)
 
         try:
-            result = agent_loop(goal, self.agent_dir, self.config, callbacks)
+            agent_result = agent_loop(goal, self.agent_dir, self.config, callbacks)
 
             # Show result with clear separator
-            print_normal(fmt_result())
-            print_result(result)
+            print_normal(fmt_result(agent_result.confidence))
+            print_result(agent_result.result)
 
             # Show token usage
             print_normal(f"\n{fmt_stats(self.token_tracker.get_summary())}")
@@ -771,11 +771,11 @@ def main():
 
     # Run agent
     try:
-        result = agent_loop(goal, agent_dir, config, callbacks)
+        agent_result = agent_loop(goal, agent_dir, config, callbacks)
 
         # Show result separator on stderr, then clean result on stdout
-        print_normal(fmt_result())
-        print_result(result)
+        print_normal(fmt_result(agent_result.confidence))
+        print_result(agent_result.result)
 
     except KeyboardInterrupt:
         logger.info("Agent interrupted by user")
