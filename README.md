@@ -345,8 +345,9 @@ from pathlib import Path
 config = AgentConfig(
     llm_provider="openai",
     llm_model="gpt-4",
-    max_iterations=10,
-    command_timeout=30
+    max_iterations=50,
+    command_timeout=30,
+    completion_threshold=0.8
 )
 
 # Define custom callbacks
@@ -494,7 +495,8 @@ LLM_PROVIDER=openai        # openai or anthropic
 LLM_MODEL=gpt-4            # Model to use
 
 # Agent Behavior
-MAX_ITERATIONS=10          # Max agent loop iterations
+MAX_ITERATIONS=50          # Max agent loop iterations
+COMPLETION_THRESHOLD=0.8   # Confidence threshold to finish (0.0-1.0)
 COMMAND_TIMEOUT=30         # Timeout for commands (seconds)
 MAX_RETRIES=3              # LLM call retries
 MAX_OUTPUT_SIZE=5000       # Output truncation size
